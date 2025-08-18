@@ -3,6 +3,8 @@ use std::error::Error;
 use axum::{http::StatusCode, response::IntoResponse, routing::post, serve::Serve, Router};
 use tower_http::services::ServeDir;
 
+pub mod routes;
+
 // This struct encapsulates our application-related logic.
 pub struct Application {
     server: Serve<Router, Router>,
