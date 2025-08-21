@@ -14,3 +14,14 @@ services:
     restart: "always" # automatically restart container when server crashes
     ports:
       - "3000:3000" # expose port 3000 so that applications outside the container can connect to it 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_reverse_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app-service
+      - auth-service
+    restart: always

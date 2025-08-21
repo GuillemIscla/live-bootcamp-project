@@ -13,10 +13,13 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
+    let router_internal = Router::new()
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))
         .route("/protected", get(protected));
+
+    let app = Router::new()
+        .nest("/app", router_internal); // <- prepend /app here for nginx
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
 
