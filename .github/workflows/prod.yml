@@ -84,6 +84,9 @@ jobs:
     - name: Copy compose.yml to droplet
       run: sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
 
+    - name: Copy compose.override.yml to droplet
+      run: sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no compose.prod.override.yml root@${{ vars.DROPLET_IP }}:~/compose.override.yml
+
     - name: Copy nginx.conf to droplet
       run: sshpass -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no nginx.conf root@${{ vars.DROPLET_IP }}:/root/nginx.conf
 
