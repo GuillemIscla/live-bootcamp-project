@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::domain::data_stores::UserStore;
+use crate::domain::data_stores::user_store::UserStore;
 
 // Using a type alias to improve readability!
-pub type UserStoreType = Arc<RwLock<dyn UserStore + Sync + Send>>;
+pub type UserStoreType = Arc<RwLock<dyn UserStore>>;
 
 #[derive(Clone)]
 pub struct AppState {

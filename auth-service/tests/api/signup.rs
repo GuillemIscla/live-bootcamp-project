@@ -10,7 +10,7 @@ async fn should_return_422_if_malformed_input() {
 
     let test_cases = [
         serde_json::json!({
-            "password": "password123",
+            "password": "Password123",
             "requires2FA": true
         }),
         serde_json::json!({
@@ -19,12 +19,12 @@ async fn should_return_422_if_malformed_input() {
         }),
         serde_json::json!({
             "email": random_email,
-            "password": "password123",
+            "password": "Password123",
             "requires2FA": "yes"
         }),
         serde_json::json!({
             "email": random_email,
-            "password": "password123",
+            "password": "Password123",
             "requiresMinus2FA": true
         }),
     ];
@@ -48,7 +48,7 @@ async fn should_return_201_if_valid_input() {
 
     let test_case = serde_json::json!({
         "email": random_email,
-        "password": "password123",
+        "password": "Password123",
         "requires2FA": true
     });
 
