@@ -1,4 +1,8 @@
+use auth_service::app_state::AppState;
+use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
+use tokio::sync::RwLock;
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct TestApp {
@@ -8,20 +12,26 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let app = Application::build("127.0.0.1:0")
+        let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
+        let app_state = AppState::new(user_store);
+
+        let app = Application::build(app_state, "127.0.0.1:0")
             .await
             .expect("Failed to build app");
 
         let address = format!("http://{}", app.address.clone());
 
         // Run the auth service in a separate async task
-        // to avoid blocking the main test thread. 
+        // to avoid blocking the main test thread.
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
 
-        let http_client = reqwest::Client::new(); 
+        let http_client = reqwest::Client::new();
 
-        TestApp { address, http_client }
+        TestApp {
+            address,
+            http_client,
+        }
     }
 
     pub async fn get_root(&self) -> reqwest::Response {
