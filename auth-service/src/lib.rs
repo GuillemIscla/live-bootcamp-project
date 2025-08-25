@@ -11,7 +11,6 @@ use tonic::transport::Server;
 use domain::AuthAPIError;
 use serde::{Deserialize, Serialize};
 use crate::{app_state::AppState, auth::auth_grpc_service_server::AuthGrpcServiceServer}; 
-use crate::auth::auth_grpc_service_server::AuthGrpcService;
 use crate::presentation::grpc_auth_service_impl::AuthGrpcServiceImpl;
 
 pub mod app_state;
@@ -48,8 +47,6 @@ impl Application {
         if with_grpc {
             let addr = "0.0.0.0:50051".parse()?;
             let auth_service = AuthGrpcServiceImpl::default();
-
-            println!("[auth-service] Grpc Server listening on {}", addr);
 
             Server::builder()
                 .add_service(AuthGrpcServiceServer::new(auth_service))

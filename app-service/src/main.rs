@@ -11,8 +11,6 @@ use axum_extra::extract::CookieJar;
 use serde::Serialize;
 use tower_http::services::ServeDir;
 use presentation::grpc_auth_service_client_impl::AuthGrpcServiceClientImpl;
-use presentation::grpc_auth_service_client_impl::VerifyToken;
-
 pub mod auth {
     tonic::include_proto!("auth"); // matches `package auth`
 }
@@ -23,17 +21,8 @@ pub mod presentation;
 async fn main() {
 
     let grpc_address = "http://auth-service:50051";
-    let mut auth_grpc_service_client = 
+    let mut _auth_grpc_service_client = 
         AuthGrpcServiceClientImpl::new(grpc_address).await.unwrap();
-
-    println!("[app-service] Grpc instantiated and calling 'verify_token'");
-    let token_verification = auth_grpc_service_client.verify_token("Secret123").await;
-    let token_valid = match token_verification {
-        VerifyToken::Valid => true,
-        _ => false,
-    };
-    println!("[app-service] Token received. Valid is '{}'", token_valid);
-
 
     let router_internal = Router::new()
         .nest_service("/assets", ServeDir::new("assets"))

@@ -2,6 +2,7 @@ use axum::{http::StatusCode, response::IntoResponse};
 
 use crate::auth::verify_token_response::VerifyTokenStatus;
 
+#[allow(dead_code)]
 enum VerifyTokenInternal {
     Valid,
     Invalid,

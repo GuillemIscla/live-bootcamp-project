@@ -11,11 +11,9 @@ pub struct AuthGrpcServiceImpl;
 impl AuthGrpcService for AuthGrpcServiceImpl {
     async fn verify_token(
         &self,
-        request: TonicRequest<VerifyTokenRequest>,
+        _request: TonicRequest<VerifyTokenRequest>,
     ) -> Result<TonicResponse<VerifyTokenResponse>, Status> {
         // let token = request.into_inner().token; //Will uncomment when we add verification logic
-
-        println!("[auth-service] Verifying token");
 
         let token_status = verify_token_grpc().await.into();
 
