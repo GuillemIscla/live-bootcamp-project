@@ -46,7 +46,7 @@ impl Application {
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
 
         if with_grpc {
-            let addr = "[::1]:50051".parse()?;
+            let addr = "0.0.0.0:50051".parse()?;
             let auth_service = AuthGrpcServiceImpl::default();
 
             println!("[auth-service] Grpc Server listening on {}", addr);

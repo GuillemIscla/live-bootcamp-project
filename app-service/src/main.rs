@@ -22,7 +22,7 @@ pub mod presentation;
 #[tokio::main]
 async fn main() {
 
-    let grpc_address = "http://[::1]:50051";
+    let grpc_address = "http://auth-service:50051";
     let mut auth_grpc_service_client = 
         AuthGrpcServiceClientImpl::new(grpc_address).await.unwrap();
 

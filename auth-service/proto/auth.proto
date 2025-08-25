@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package auth;
+
+service AuthGrpcService {
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+}
+
+message VerifyTokenRequest {
+  string token = 1;
+}
+
+message VerifyTokenResponse {
+
+  enum VerifyTokenStatus {
+     VALID = 0;
+     INVALID = 1;
+     UNPROCESSABLE_CONTENT = 2;
+     UNEXPECTED_ERROR = 3;
+  }
+  VerifyTokenStatus token_status = 1;
+  
+}
