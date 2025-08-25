@@ -33,7 +33,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str, with_grpc:bool) -> Result<Self, Box<dyn Error>> {
         let router_internal = Router::new()
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
@@ -45,16 +45,17 @@ impl Application {
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
 
-        let addr = "[::1]:50051".parse()?;
-        let auth_service = AuthGrpcServiceImpl::default();
+        if with_grpc {
+            let addr = "[::1]:50051".parse()?;
+            let auth_service = AuthGrpcServiceImpl::default();
 
-        println!("[auth-service] Grpc Server listening on {}", addr);
+            println!("[auth-service] Grpc Server listening on {}", addr);
 
-        Server::builder()
-            .add_service(AuthGrpcServiceServer::new(auth_service))
-            .serve(addr)
-            .await?;
-
+            Server::builder()
+                .add_service(AuthGrpcServiceServer::new(auth_service))
+                .serve(addr)
+                .await?;
+        }
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
