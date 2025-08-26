@@ -1,13 +1,17 @@
 use auth_service::app_state::AppState;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
-use tokio::sync::RwLock;
+use auth_service::auth::auth_grpc_service_client::AuthGrpcServiceClient;
+use tokio::sync::{RwLock, oneshot};
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub struct TestApp {
     pub address: String,
     pub http_client: reqwest::Client,
+    pub grpc_address: String,
+    pub grpc_client: AuthGrpcServiceClient<tonic::transport::Channel>
 }
 
 impl TestApp {
@@ -15,22 +19,34 @@ impl TestApp {
         let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
         let app_state = AppState::new(user_store);
 
-        let app = Application::build(app_state, "127.0.0.1:0", false)
+        let app = Application::build(app_state, "127.0.0.1:0", "127.0.0.1:0")
             .await
             .expect("Failed to build app");
 
-        let address = format!("http://{}", app.address.clone());
+        let address: String = format!("http://{}", app.address.clone());
+        let grpc_address = format!("http://{}", app.grpc_address.clone());
+
+        // create a ready channel
+        let (tx_ready, rx_ready) = oneshot::channel();
 
         // Run the auth service in a separate async task
         // to avoid blocking the main test thread.
         #[allow(clippy::let_underscore_future)]
-        let _ = tokio::spawn(app.run());
+        let _ = tokio::spawn(app.run(Some(tx_ready)));
+
+        // wait for server ready
+        rx_ready.await.unwrap();
 
         let http_client = reqwest::Client::new();
+        let grpc_client = AuthGrpcServiceClient::connect(grpc_address.clone())
+            .await
+            .expect("Failed to connect to gRPC server");
 
         TestApp {
             address,
             http_client,
+            grpc_address,
+            grpc_client,
         }
     }
 

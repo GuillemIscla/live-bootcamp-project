@@ -6,11 +6,14 @@ use axum::{
     serve::Serve,
     Json, Router,
 };
+use anyhow::Result;
 use tower_http::services::ServeDir;
-use tonic::transport::Server;
+use tokio::try_join;
+use tokio::sync::oneshot;
 use domain::AuthAPIError;
 use serde::{Deserialize, Serialize};
 use crate::{app_state::AppState, auth::auth_grpc_service_server::AuthGrpcServiceServer}; 
+
 use crate::presentation::grpc_auth_service_impl::AuthGrpcServiceImpl;
 
 pub mod app_state;
@@ -29,10 +32,13 @@ pub struct Application {
     // address is exposed as a public field
     // so we have access to it in tests.
     pub address: String,
+    grpc_router: tonic::transport::server::Router,
+    pub grpc_address: String,
 }
 
 impl Application {
-    pub async fn build(app_state: AppState, address: &str, with_grpc:bool) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str, grpc_address:&str) -> Result<Self, Box<dyn Error>> {
+        //Http router
         let router_internal = Router::new()
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
@@ -44,26 +50,47 @@ impl Application {
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
 
-        if with_grpc {
-            let addr = "0.0.0.0:50051".parse()?;
-            let auth_service = AuthGrpcServiceImpl::default();
-
-            Server::builder()
-                .add_service(AuthGrpcServiceServer::new(auth_service))
-                .serve(addr)
-                .await?;
-        }
-
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
 
-        Ok(Application { server, address })
+        //Grpc router
+        let listener = tokio::net::TcpListener::bind(grpc_address).await?;
+        let grpc_address = listener.local_addr()?.to_string();
+        let auth_service = AuthGrpcServiceImpl::default();
+        let grpc_router =  tonic::transport::Server::builder()
+            .add_service(AuthGrpcServiceServer::new(auth_service));
+
+        Ok(Application { server, address, grpc_router, grpc_address })
     }
 
-    pub async fn run(self) -> Result<(), std::io::Error> {
-        println!("listening on {}", &self.address);
-        self.server.await
+    pub async fn run(self, tx_ready: Option<oneshot::Sender<()>>) -> Result<()> {
+        println!("🚀 gRPC listening on {}", self.grpc_address);
+        println!("🌍 HTTP listening on {}", self.address);
+
+        //At this point the port is already bound
+        if let Some(tx) = tx_ready {
+            let _ = tx.send(());
+        }
+
+        let grpc_server_async = 
+            async { 
+                self
+                    .grpc_router
+                    .serve(self.grpc_address.parse()?)
+                    .await
+                    .map_err(|e| anyhow::Error::new(e).context("gRPC server failed"))
+            };
+
+        let http_server_async = 
+            async { 
+                self
+                    .server
+                    .await
+                    .map_err(|e| anyhow::Error::new(e).context("HTTP server failed")) 
+            };
+
+        try_join!(grpc_server_async, http_server_async).map(|_| ())
     }
 }
 
