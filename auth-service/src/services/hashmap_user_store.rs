@@ -18,16 +18,16 @@ impl UserStore for HashmapUserStore {
         }
     }
 
-    async fn get_user(&self, email: Email) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         match self.users.get(&email) {
             Some(user) => Ok(user.clone()),
             None => Err(UserStoreError::UserNotFound),
         }
     }
 
-    async fn validate_user(&self, email: Email, password: Password) -> Result<(), UserStoreError> {
+    async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
         match self.get_user(email).await {
-            Ok(user) if user.password == password => Ok(()),
+            Ok(user) if user.password == *password => Ok(()),
             Ok(_) => Err(UserStoreError::InvalidCredentials),
             Err(error) => Err(error), //we return the same UserNotFound error required
         }
@@ -63,9 +63,9 @@ mod tests {
         let user = User::new(email.clone(), Password::parse("RustIsSecure123").unwrap(), false);
 
         let _ = hashmap_user_store.add_user(user).await;
-        assert!(hashmap_user_store.get_user(email).await.is_ok());
+        assert!(hashmap_user_store.get_user(&email).await.is_ok());
         assert_eq!(
-            hashmap_user_store.get_user(other_email).await,
+            hashmap_user_store.get_user(&other_email).await,
             Err(UserStoreError::UserNotFound)
         );
     }
@@ -80,13 +80,13 @@ mod tests {
         let user = User::new(email.clone(), password.clone(), false);
 
         let _ = hashmap_user_store.add_user(user).await;
-        assert!(hashmap_user_store.validate_user(email.clone(), password).await.is_ok());
+        assert!(hashmap_user_store.validate_user(&email, &password).await.is_ok());
         assert_eq!(
-            hashmap_user_store.validate_user(email.clone(), other_password.clone()).await,
+            hashmap_user_store.validate_user(&email, &other_password).await,
             Err(UserStoreError::InvalidCredentials)
         );
         assert_eq!(
-            hashmap_user_store.validate_user(other_email.clone(), other_password.clone()).await,
+            hashmap_user_store.validate_user(&other_email, &other_password).await,
             Err(UserStoreError::UserNotFound)
         );
     }
