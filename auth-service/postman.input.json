@@ -1,0 +1,87 @@
+[
+  {
+    "endpoint": "root",
+    "title": "Root returns 200",
+    "expectedStatus": 200
+  },
+  {
+    "endpoint": "sign-up",
+    "title": "Malformed body should returun 422",
+    "email": "user1@example.com",
+    "password": "passWord1",
+    "requires2FA": 0,
+    "expectedStatus": 422
+  },
+  {
+    "endpoint": "sign-up",
+    "title": "Correct body should return 201",
+    "email": "random",
+    "password": "passWord2",
+    "requires2FA": true,
+    "expectedStatus": 201
+  },
+  {
+    "endpoint": "sign-up",
+    "title": "Malformed email should get 400",
+    "email": "not_an_email",
+    "password": "passWord3",
+    "requires2FA": true,
+    "expectedStatus": 400
+  },
+  {
+    "endpoint": "sign-up",
+    "title": "Bad password should get 400",
+    "email": "user2@example.com",
+    "password": "tooshort",
+    "requires2FA": true,
+    "expectedStatus": 400
+  },
+  {
+    "endpoint": "sign-up",
+    "title": "No test. Only add user for next test",
+    "email": "user_to_add@example.com",
+    "password": "passWord4",
+    "requires2FA": true,
+    "expectedStatus": ""
+  },
+  {
+    "endpoint": "sign-up",
+    "title": "Sign up with existing user should get 409",
+    "email": "user_to_add@example.com",
+    "password": "passWord4",
+    "requires2FA": true,
+    "expectedStatus": 409
+  },
+  {
+    "endpoint": "login",
+    "title": "Login returns 200",
+    "expectedStatus": 200
+  },
+  {
+    "endpoint": "verify-2fa",
+    "title": "Verify 2FA returns 200",
+    "expectedStatus": 200
+  },
+  {
+    "endpoint": "logout",
+    "title": "Logout returns 200",
+    "expectedStatus": 200
+  },
+  {
+    "endpoint": "verify-token",
+    "title": "Verify token returns 200",
+    "expectedStatus": 200
+  },
+  {
+    "endpoint": "delete-account",
+    "title": "Delete account returns 404 when the user does not exist",
+    "email": "random",
+    "expectedStatus": 404
+  },
+  {
+    "endpoint": "delete-account",
+    "title": "Delete account returns 200 when the user exists",
+    "email": "user_to_add@example.com",
+    "expectedStatus": 200
+  }
+]

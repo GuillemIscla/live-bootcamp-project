@@ -2,7 +2,7 @@ use std::error::Error;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::post,
+    routing::{delete, post},
     serve::Serve,
     Json, Router,
 };
@@ -46,6 +46,7 @@ impl Application {
             .route("/logout", post(routes::logout))
             .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token_html))
+            .route("/delete-account", delete(routes::delete_account))
             .with_state(app_state);
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
@@ -104,6 +105,8 @@ impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
+            AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
+            AuthAPIError::Unauthorized => (StatusCode::UNAUTHORIZED, "Not authorized to do this operation"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")

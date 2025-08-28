@@ -18,8 +18,17 @@ impl UserStore for HashmapUserStore {
         }
     }
 
+    async fn delete_user(&mut self, email: &Email) -> Result<(), UserStoreError> {
+        if self.users.contains_key(email) {
+            self.users.remove(email);
+            Ok(())
+        } else {
+            Err(UserStoreError::UserNotFound)
+        }
+    }
+
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
-        match self.users.get(&email) {
+        match self.users.get(email) {
             Some(user) => Ok(user.clone()),
             None => Err(UserStoreError::UserNotFound),
         }
