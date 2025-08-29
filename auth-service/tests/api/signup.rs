@@ -1,10 +1,14 @@
-use auth_service::{routes::SignupResponse, ErrorResponse};
+use std::sync::Arc;
+
+use auth_service::{domain::{data_stores::user_store::{UserStoreError}, email::Email, User}, routes::SignupResponse, ErrorResponse};
+use auth_service::domain::data_stores::user_store::MockUserStore;
+use tokio::sync::RwLock;
 
 use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new().await;
+    let app = TestApp::new(None).await;
 
     let random_email = get_random_email(); // Call helper method to generate email
 
@@ -42,7 +46,7 @@ async fn should_return_422_if_malformed_input() {
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
-    let app = TestApp::new().await;
+    let app = TestApp::new(None).await;
 
     let random_email = get_random_email();
 
@@ -74,7 +78,7 @@ async fn should_return_201_if_valid_input() {
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new().await;
+    let app = TestApp::new(None).await;
 
     let bad_email_1 = "";
     let bad_email_2 = "user_name_a_domain";
@@ -122,7 +126,7 @@ async fn should_return_400_if_invalid_input() {
 #[tokio::test]
 async fn should_return_409_if_email_already_exists() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code    
-    let app = TestApp::new().await;
+    let app = TestApp::new(None).await;
 
     let random_email = get_random_email();
 
@@ -155,3 +159,84 @@ async fn should_return_409_if_email_already_exists() {
     );
 }
 
+
+#[tokio::test]
+async fn should_return_500_if_store_has_unexpected_error() {
+    let email_no_connections_raw = "dont_have_connections@domain.com";
+    let email_no_connections = Email::parse(email_no_connections_raw).unwrap();
+    let email_query_error_raw = "query_error@domain.com";
+    let email_query_error = Email::parse(email_query_error_raw).unwrap();
+    let password = "Password123";
+    let requires_2fa = true;
+
+    let sign_up_request_no_connections = serde_json::json!({
+        "email": email_no_connections_raw,
+        "password": password,
+        "requires2FA": requires_2fa
+    });
+
+    let sign_up_request_query_error = serde_json::json!({
+        "email": email_query_error_raw,
+        "password": password,
+        "requires2FA": requires_2fa
+    });
+
+
+    let mut mock_user_store = MockUserStore::new();
+
+
+    mock_user_store
+        .expect_get_user()
+        .returning(|_| Err(UserStoreError::UserNotFound));
+
+    mock_user_store
+        .expect_add_user()
+        .withf(move |u: &User| u.email == email_no_connections)
+        .once()
+        .returning(|_| Err(UserStoreError::NoConnections));
+
+    mock_user_store
+        .expect_add_user()
+        .withf(move |u: &User| u.email == email_query_error)
+        .once()
+        .returning(|_| Err(UserStoreError::QueryError));
+
+
+    let app = TestApp::new(Some(Arc::new(RwLock::new(mock_user_store)))).await;
+
+    let response_no_connections = app.post_signup(&sign_up_request_no_connections).await;
+
+    assert_eq!(
+        response_no_connections.status().as_u16(),
+        500,
+        "Failed for input: {:?}",
+        sign_up_request_no_connections
+    );
+
+    assert_eq!(
+        response_no_connections
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+        "Unexpected error".to_owned()
+    );
+
+    let response_query_error = app.post_signup(&sign_up_request_query_error).await;
+
+    assert_eq!(
+        response_query_error.status().as_u16(),
+        500,
+        "Failed for input: {:?}",
+        sign_up_request_query_error
+    );
+
+    assert_eq!(
+        response_query_error
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+        "Unexpected error".to_owned()
+    );
+}

@@ -23,7 +23,7 @@ pub async fn signup(State(state): State<AppState>, Json(request): Json<SignupReq
         return Err(AuthAPIError::UserAlreadyExists);
     }
 
-    if user_store.add_user(user).await.is_err() {
+    if user_store.add_user(user).await.is_err() { //At this point all errors are unexpected
         return Err(AuthAPIError::UnexpectedError);
     }
 

@@ -1,3 +1,4 @@
+use auth_service::app_state::UserStoreType;
 use auth_service::app_state::AppState;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
@@ -15,8 +16,8 @@ pub struct TestApp {
 }
 
 impl TestApp {
-    pub async fn new() -> Self {
-        let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
+    pub async fn new(mock_user_store:Option<UserStoreType>) -> Self {
+        let user_store = mock_user_store.unwrap_or(Arc::new(RwLock::new(HashmapUserStore::default())));
         let app_state = AppState::new(user_store);
 
         let app = Application::build(app_state, "127.0.0.1:0", "127.0.0.1:0")

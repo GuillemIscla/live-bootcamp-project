@@ -3,7 +3,7 @@ use auth_service::auth::VerifyTokenRequest;
 
 #[tokio::test]
 async fn verify_token_returns_ok() {
-    let app = TestApp::new().await;
+    let app = TestApp::new(None).await;
 
     let response = app.post_verify_token().await;
 
@@ -12,7 +12,7 @@ async fn verify_token_returns_ok() {
 
 #[tokio::test]
 async fn verify_token_grpc_returns_valid() {
-    let mut app = TestApp::new().await;
+    let mut app = TestApp::new(None).await;
 
     // Prepare request
     let request = tonic::Request::new(VerifyTokenRequest {

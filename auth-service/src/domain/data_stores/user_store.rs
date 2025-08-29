@@ -1,5 +1,6 @@
 use crate::domain::{email::Email, password::Password, User};
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait UserStore: Sync + Send {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
@@ -17,4 +18,6 @@ pub enum UserStoreError {
     UserNotFound,
     InvalidCredentials,
     UnexpectedError,
+    QueryError,
+    NoConnections,
 }
