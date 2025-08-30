@@ -6,14 +6,9 @@ use crate::{
 };
 
 pub async fn signup(State(state): State<AppState>, Json(request): Json<SignupRequest>) -> Result<impl IntoResponse, AuthAPIError>  {
-    let email = match Email::parse(&request.email) {
-        Ok(email) => email,
-        _ => return Err(AuthAPIError::InvalidCredentials)
-    };
-    let password = match Password::parse(&request.password) {
-            Ok(password) => password,
-        _ => return Err(AuthAPIError::InvalidCredentials)
-    };
+    let email = Email::parse(&request.email).map_err(|_| AuthAPIError::InvalidCredentials)?;
+
+    let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
 
     let user = User::new(email, password, request.requires_2fa);
 
