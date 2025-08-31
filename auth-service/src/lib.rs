@@ -1,13 +1,13 @@
 use std::error::Error;
 use axum::{
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::{delete, post},
     serve::Serve,
     Json, Router,
 };
 use anyhow::Result;
-use tower_http::services::ServeDir;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 use tokio::try_join;
 use tokio::sync::oneshot;
 use domain::AuthAPIError;
@@ -39,6 +39,19 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str, grpc_address:&str) -> Result<Self, Box<dyn Error>> {
+        let allowed_origins = [
+            "http://localhost:8000".parse()?,
+            // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
+            "http://137.184.105.16:8000".parse()?,
+        ];
+
+        let cors = CorsLayer::new()
+            // Allow GET and POST requests
+            .allow_methods([Method::GET, Method::POST])
+            // Allow cookies to be included in requests
+            .allow_credentials(true)
+            .allow_origin(allowed_origins);
+
         //Http router
         let router_internal = Router::new()
             .nest_service("/", ServeDir::new("assets"))
@@ -48,7 +61,8 @@ impl Application {
             .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
-            .with_state(app_state);
+            .with_state(app_state)
+            .layer(cors);
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
 
@@ -105,14 +119,16 @@ pub struct ErrorResponse {
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
-            AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
-            AuthAPIError::Unauthorized => (StatusCode::UNAUTHORIZED, "Not authorized to do this operation"),
             AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
+            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
+            AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
+            AuthAPIError::Unauthorized => (StatusCode::UNAUTHORIZED, "Not authorized to do this operation"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),
