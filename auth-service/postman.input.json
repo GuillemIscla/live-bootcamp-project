@@ -54,8 +54,31 @@
   },
   {
     "endpoint": "login",
-    "title": "Login returns 200",
+    "title": "Malformed body should returun 422",
+    "email": "user_to_add@example.com",
+    "password": true,
     "expectedStatus": 200
+  },
+  {
+    "endpoint": "login",
+    "title": "Malformed email should get 400",
+    "email": "not_an_email",
+    "password": "passWord3",
+    "expectedStatus": 400
+  },
+  {
+    "endpoint": "login",
+    "title": "Bad password should get 400",
+    "email": "user2@example.com",
+    "password": "tooshort",
+    "expectedStatus": 400
+  },
+  {
+    "endpoint": "login",
+    "title": "Login with unexiting user should get 401",
+    "email": "random",
+    "password": "passWord3",
+    "expectedStatus": 401
   },
   {
     "endpoint": "verify-2fa",
