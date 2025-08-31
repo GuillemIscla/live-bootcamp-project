@@ -18,9 +18,10 @@ use crate::presentation::grpc_auth_service_impl::AuthGrpcServiceImpl;
 
 pub mod app_state;
 pub mod domain;
+pub mod presentation;
 pub mod routes;
 pub mod services;
-pub mod presentation;
+pub mod utils;
 
 pub mod auth {
     tonic::include_proto!("auth"); // matches `package auth`

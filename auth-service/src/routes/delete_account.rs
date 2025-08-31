@@ -16,7 +16,7 @@ pub async fn delete_account(State(state): State<AppState>, headers: HeaderMap, J
         //}
     };
 
-    let email = match Email::parse(&request.email) {
+    let email = match Email::parse(request.email) {
         Ok(email) => email,
         _ => return Err(AuthAPIError::InvalidCredentials),
     };

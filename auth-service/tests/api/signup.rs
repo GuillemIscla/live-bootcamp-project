@@ -163,9 +163,9 @@ async fn should_return_409_if_email_already_exists() {
 #[tokio::test]
 async fn should_return_500_if_store_has_unexpected_error() {
     let email_no_connections_raw = "dont_have_connections@domain.com";
-    let email_no_connections = Email::parse(email_no_connections_raw).unwrap();
+    let email_no_connections = Email::parse(email_no_connections_raw.to_owned()).unwrap();
     let email_query_error_raw = "query_error@domain.com";
-    let email_query_error = Email::parse(email_query_error_raw).unwrap();
+    let email_query_error = Email::parse(email_query_error_raw.to_owned()).unwrap();
     let password = "Password123";
     let requires_2fa = true;
 

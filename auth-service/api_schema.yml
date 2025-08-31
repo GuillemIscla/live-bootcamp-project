@@ -288,15 +288,6 @@ paths:
     delete:
       summary: Delete an existing account
       description: Delete an account that exists if having the proper permissions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
       responses:
         '200':
           description: Account was deleted

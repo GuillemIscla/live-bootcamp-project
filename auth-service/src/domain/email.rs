@@ -6,10 +6,10 @@ pub struct Email {
 }
 
 impl Email {
-    pub fn parse(raw_email:&str) -> Result<Email, ()> {
+    pub fn parse(raw_email:String) -> Result<Email, ()> {
         let re = Regex::new(r"\S+@\S+\.\S+").unwrap();
-        if re.is_match(raw_email) {
-            Ok(Email { value: raw_email.to_string() })
+        if re.is_match(&raw_email) {
+            Ok(Email { value: raw_email })
         }
         else {
             Err(())
@@ -34,7 +34,7 @@ fn good_emails_should_be_parsed() {
     ];
 
     for raw_email in raw_emails {
-        assert!(Email::parse(raw_email).is_ok());
+        assert!(Email::parse(raw_email.to_string()).is_ok());
     }
     
 }
@@ -51,7 +51,7 @@ fn bad_email_should_be_parsed() {
     ];
 
     for raw_email in raw_emails {
-        assert!(Email::parse(raw_email).is_err());
+        assert!(Email::parse(raw_email.to_string()).is_err());
     }
     
 }

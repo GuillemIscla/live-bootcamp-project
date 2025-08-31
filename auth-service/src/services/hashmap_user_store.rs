@@ -52,7 +52,7 @@ mod tests {
     async fn test_add_user() {
         let mut hashmap_user_store = HashmapUserStore::default();
         let user = User::new(
-            Email::parse("guillem@letsgetrusty.com").unwrap(),
+            Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap(),
             Password::parse("RustIsSecure123").unwrap(),
             false,
         );
@@ -67,8 +67,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_user() {
         let mut hashmap_user_store = HashmapUserStore::default();
-        let email = Email::parse("guillem@letsgetrusty.com").unwrap();
-        let other_email = Email::parse("other_person@letsgetrusty.com").unwrap();
+        let email = Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap();
+        let other_email = Email::parse("other_person@letsgetrusty.com".to_owned()).unwrap();
         let user = User::new(email.clone(), Password::parse("RustIsSecure123").unwrap(), false);
 
         let _ = hashmap_user_store.add_user(user).await;
@@ -82,9 +82,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_user() {
         let mut hashmap_user_store = HashmapUserStore::default();
-        let email = Email::parse("guillem@letsgetrusty.com").unwrap();
+        let email = Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap();
         let password = Password::parse("RustIsSecure123").unwrap();
-        let other_email = Email::parse("other_person@letsgetrusty.com").unwrap();
+        let other_email = Email::parse("other_person@letsgetrusty.com".to_owned()).unwrap();
         let other_password = Password::parse("OtherPassword456").unwrap();
         let user = User::new(email.clone(), password.clone(), false);
 
