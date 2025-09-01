@@ -1,5 +1,7 @@
 use auth_service::app_state::UserStoreType;
 use auth_service::app_state::AppState;
+use auth_service::auth::VerifyTokenRequest;
+use auth_service::auth::VerifyTokenResponse;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::utils::constants::test;
 use auth_service::Application;
@@ -118,10 +120,21 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn post_verify_token(&self) -> reqwest::Response {
+    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response 
+        where
+        Body: serde::Serialize,
+    {
         self.http_client
             .post(&format!("{}/auth/verify-token", &self.address))
+            .json(body)
             .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn grpc_verify_token(&mut self, request: impl tonic::IntoRequest<VerifyTokenRequest>) -> tonic::Response<VerifyTokenResponse> {
+        self.grpc_client
+            .verify_token(request)
             .await
             .expect("Failed to execute request.")
     }

@@ -1,6 +1,7 @@
-use axum::{http::StatusCode, response::IntoResponse};
+use axum::{http::StatusCode, response::IntoResponse, Json};
+use serde::Deserialize;
 
-use crate::auth::verify_token_response::VerifyTokenStatus;
+use crate::{auth::verify_token_response::VerifyTokenStatus, utils::auth::validate_token};
 
 #[allow(dead_code)]
 enum VerifyTokenInternal {
@@ -10,8 +11,8 @@ enum VerifyTokenInternal {
     UnexpectedError,
 }
 
-pub async fn verify_token_html() -> impl IntoResponse {
-    match verify_token_internal().await {
+pub async fn verify_token_html(Json(request): Json<VerifyTokenRequest>) -> impl IntoResponse {
+    match verify_token_internal(request.token).await {
         VerifyTokenInternal::Valid => StatusCode::OK.into_response(),
         VerifyTokenInternal::Invalid => StatusCode::UNAUTHORIZED.into_response(),
         VerifyTokenInternal::UnprocessableContent => StatusCode::UNPROCESSABLE_ENTITY.into_response(),
@@ -19,8 +20,8 @@ pub async fn verify_token_html() -> impl IntoResponse {
     }
 }
 
-pub async fn verify_token_grpc() -> VerifyTokenStatus {
-    match verify_token_internal().await {
+pub async fn verify_token_grpc(token:String) -> VerifyTokenStatus {
+    match verify_token_internal(token).await {
         VerifyTokenInternal::Valid => VerifyTokenStatus::Valid,
         VerifyTokenInternal::Invalid => VerifyTokenStatus::Invalid,
         VerifyTokenInternal::UnprocessableContent => VerifyTokenStatus::UnprocessableContent,
@@ -28,7 +29,33 @@ pub async fn verify_token_grpc() -> VerifyTokenStatus {
     }
 }
 
-async fn verify_token_internal() -> VerifyTokenInternal {
-    VerifyTokenInternal::Valid
+async fn verify_token_internal(token:String) -> VerifyTokenInternal {
+    match validate_token(&token).await {
+        Ok(_) => VerifyTokenInternal::Valid,
+        Err(err) => match err.kind() {
+            jsonwebtoken::errors::ErrorKind::InvalidToken => {
+                VerifyTokenInternal::Invalid
+            }
+            jsonwebtoken::errors::ErrorKind::InvalidIssuer => {
+                VerifyTokenInternal::Invalid
+            }
+            jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+                VerifyTokenInternal::Invalid
+            }
+            // other cases that mean “bad input”
+            jsonwebtoken::errors::ErrorKind::InvalidAlgorithm
+            | jsonwebtoken::errors::ErrorKind::InvalidKeyFormat
+            | jsonwebtoken::errors::ErrorKind::InvalidEcdsaKey
+            | jsonwebtoken::errors::ErrorKind::InvalidRsaKey(_) => {
+                VerifyTokenInternal::UnprocessableContent
+            }
+            // catch-all for unexpected errors
+            _ => VerifyTokenInternal::UnexpectedError,
+        },
+    }
 }
 
+#[derive(Deserialize)]
+pub struct VerifyTokenRequest {
+    pub token: String,
+}

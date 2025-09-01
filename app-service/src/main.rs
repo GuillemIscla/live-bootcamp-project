@@ -50,8 +50,8 @@ async fn root() -> impl IntoResponse {
     if address.is_empty() {
         address = "localhost".to_owned();
     }
-    let login_link = format!("http://{}:3000", address);
-    let logout_link = format!("http://{}:3000/logout", address);
+    let login_link = format!("http://{}/auth", address);
+    let logout_link = format!("http://{}/auth/logout", address);
 
     let template = IndexTemplate {
         login_link,
@@ -67,15 +67,12 @@ async fn protected(jar: CookieJar) -> impl IntoResponse {
             return StatusCode::UNAUTHORIZED.into_response();
         }
     };
-
     let api_client = reqwest::Client::builder().build().unwrap();
-
     let verify_token_body = serde_json::json!({
         "token": &jwt_cookie.value(),
     });
-
     let auth_hostname = env::var("AUTH_SERVICE_HOST_NAME").unwrap_or("0.0.0.0".to_owned());
-    let url = format!("http://{}:3000/verify-token", auth_hostname);
+    let url = format!("http://{}:3000/auth/verify-token", auth_hostname);
 
     let response = match api_client.post(&url).json(&verify_token_body).send().await {
         Ok(response) => response,

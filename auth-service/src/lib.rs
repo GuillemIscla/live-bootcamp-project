@@ -40,9 +40,9 @@ pub struct Application {
 impl Application {
     pub async fn build(app_state: AppState, address: &str, grpc_address:&str) -> Result<Self, Box<dyn Error>> {
         let allowed_origins = [
-            "http://localhost:8000".parse()?,
+            "http://localhost/app".parse()?,
             // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
-            "http://137.184.105.16:8000".parse()?,
+            "http://137.184.105.16/app".parse()?,
         ];
 
         let cors = CorsLayer::new()
