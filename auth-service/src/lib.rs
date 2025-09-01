@@ -39,6 +39,15 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str, grpc_address:&str) -> Result<Self, Box<dyn Error>> {
+
+        //Grpc router
+        let listener = tokio::net::TcpListener::bind(grpc_address).await?;
+        let grpc_address = listener.local_addr()?.to_string();
+        let auth_service = AuthGrpcServiceImpl::new(app_state.banned_token_store.clone());
+        let grpc_router =  tonic::transport::Server::builder()
+            .add_service(AuthGrpcServiceServer::new(auth_service));
+
+
         let allowed_origins = [
             "http://localhost/app".parse()?,
             // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
@@ -69,13 +78,6 @@ impl Application {
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
-
-        //Grpc router
-        let listener = tokio::net::TcpListener::bind(grpc_address).await?;
-        let grpc_address = listener.local_addr()?.to_string();
-        let auth_service = AuthGrpcServiceImpl::default();
-        let grpc_router =  tonic::transport::Server::builder()
-            .add_service(AuthGrpcServiceServer::new(auth_service));
 
         Ok(Application { server, address, grpc_router, grpc_address })
     }

@@ -76,6 +76,25 @@ async fn should_return_401_if_invalid_token() {
 }
 
 #[tokio::test]
+async fn should_return_401_if_banned_token() {
+    let app = TestApp::new(None).await;
+
+    let random_email = Email::parse(get_random_email()).unwrap();
+
+    let cookie = generate_auth_cookie(&random_email).unwrap();
+
+    let _ = app.banned_token_store.write().await.store_token(cookie.value().to_owned()).await;
+
+    let test_case = serde_json::json!({
+        "token": cookie.value(),
+    });
+
+    let response = app.post_verify_token(&test_case).await;
+
+    assert_eq!(response.status().as_u16(), 401);
+}
+
+#[tokio::test]
 async fn should_return_401_if_invalid_token_in_grpc() {
     let mut app = TestApp::new(None).await;
 
@@ -87,33 +106,3 @@ async fn should_return_401_if_invalid_token_in_grpc() {
 
     assert_eq!(status, Ok(VerifyTokenStatus::Invalid));
 }
-
-// #[tokio::test]
-// async fn verify_token_returns_ok() {
-//     let app = TestApp::new(None).await;
-
-//     let response = app.post_verify_token().await;
-
-//     assert_eq!(response.status().as_u16(), 200);
-// }
-
-// #[tokio::test]
-// async fn verify_token_grpc_returns_valid() {
-//     let mut app = TestApp::new(None).await;
-
-//     // Prepare request
-//     let request = tonic::Request::new(VerifyTokenRequest {
-//         token: "test-token".to_string(),
-//     });
-
-//     // Call the gRPC endpoint
-//     let response = app.grpc_client
-//         .verify_token(request)
-//         .await
-//         .expect("gRPC request failed");
-
-//     let resp = response.into_inner();
-
-//     // Assert on the enum value
-//     assert_eq!(resp.token_status, auth_service::auth::verify_token_response::VerifyTokenStatus::Valid as i32);
-// }

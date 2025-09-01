@@ -75,6 +75,13 @@ async fn should_return_200_if_valid_jwt_cookie() {
         200,
         "Failed for input: "
     );
+
+    let banned_token_store = app.banned_token_store.read().await;
+    assert_eq!(
+        banned_token_store.token_exists(cookie.value()).await, 
+        Ok(true), 
+            "Missing token from the store: {}", cookie.value()
+    );
 }
 
 #[tokio::test]
