@@ -1,13 +1,13 @@
 use std::error::Error;
 use axum::{
-    http::{Method, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
     routing::{delete, post},
     serve::Serve,
     Json, Router,
 };
 use anyhow::Result;
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::services::ServeDir;
 use tokio::try_join;
 use tokio::sync::oneshot;
 use domain::AuthAPIError;
@@ -47,19 +47,19 @@ impl Application {
         let grpc_router =  tonic::transport::Server::builder()
             .add_service(AuthGrpcServiceServer::new(auth_service));
 
+        /* REPLACED THE CORS FUNCTIONALITY WITH NGINX IN A SIDE QUEST */
+        // let allowed_origins = [
+        //     "http://localhost/app".parse()?,
+        //     // Replace [YOUR_DROPLET_IP] with your Droplet IP address
+        //     "http:/[YOUR_DROPLET_IP]/app".parse()?,
+        // ];
 
-        let allowed_origins = [
-            "http://localhost/app".parse()?,
-            // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
-            "http://137.184.105.16/app".parse()?,
-        ];
-
-        let cors = CorsLayer::new()
-            // Allow GET and POST requests
-            .allow_methods([Method::GET, Method::POST])
-            // Allow cookies to be included in requests
-            .allow_credentials(true)
-            .allow_origin(allowed_origins);
+        // let cors = CorsLayer::new()
+        //     // Allow GET and POST requests
+        //     .allow_methods([Method::GET, Method::POST])
+        //     // Allow cookies to be included in requests
+        //     .allow_credentials(true)
+        //     .allow_origin(allowed_origins);
 
         //Http router
         let router_internal = Router::new()
@@ -70,8 +70,8 @@ impl Application {
             .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
-            .with_state(app_state)
-            .layer(cors);
+            .with_state(app_state);
+            // .layer(cors);
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
 
