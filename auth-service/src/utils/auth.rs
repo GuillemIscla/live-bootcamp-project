@@ -11,13 +11,9 @@ pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTo
     Ok(create_auth_cookie(token))
 }
 
-// Create cookie with a new JWT auth token
+// Create an empty cookie (for removing from the jar) with a new JWT auth token
 pub fn generate_auth_cookie_empty() -> Cookie<'static> {
-    Cookie::build((JWT_COOKIE_NAME, ""))
-        .path("/") // apply cookie to all URLs on the server
-        .http_only(true) // prevent JavaScript from accessing the cookie
-        .same_site(SameSite::Lax) // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
-        .build()
+    create_auth_cookie("".to_owned())
 }
 
 // Create cookie and set the value to the passed-in token string 

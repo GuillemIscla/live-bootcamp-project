@@ -85,6 +85,14 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
+    pub async fn post_refresh_token(&self) -> reqwest::Response  {
+        self.http_client
+            .post(&format!("{}/auth/refresh-token", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn post_signup<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,

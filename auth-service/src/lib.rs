@@ -70,6 +70,7 @@ impl Application {
             .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
+            .route("/refresh-token", post(routes::refresh_token))
             .with_state(app_state);
             // .layer(cors);
 
@@ -123,6 +124,7 @@ impl IntoResponse for AuthAPIError {
         let (status, error_message) = match self {
             AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::MalformedToken => (StatusCode::UNPROCESSABLE_ENTITY, "Corrupt token"),
             AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
             AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),

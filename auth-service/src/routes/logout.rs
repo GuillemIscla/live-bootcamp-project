@@ -16,6 +16,9 @@ pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> Result<(Co
     let _ = banned_token_store.store_token(cookie.clone().value().to_owned()).await;
 
 
+    //This method generates the cookie with no token but with the flags like HttpOnly, SameSite...
+    //I found that, in my browser, I would need those flags in the Set-Cookie headers that removes the cookie
+    //however, other browsers from other students did not need the flags. 
     let cookie = generate_auth_cookie_empty();
 
     Ok((jar.remove(cookie), StatusCode::OK))
