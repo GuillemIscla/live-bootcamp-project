@@ -41,9 +41,16 @@ async fn handle_2fa(
     let _ = state.two_fa_code_store
                 .write()
                 .await
-                .add_code(email.clone(), login_attempt_id.clone(), two_fa_code)
+                .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
                 .await
                 .map_err(|_| AuthAPIError::UnexpectedError)?;
+
+    let _ = state.email_client
+                .read()
+                .await
+                .send_email(email, "Verify code for login", two_fa_code.as_ref())
+                .await
+                .map_err(|_| AuthAPIError::UnexpectedError);
 
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
         message: "2FA required".to_owned(),

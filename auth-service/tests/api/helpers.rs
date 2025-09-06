@@ -1,4 +1,5 @@
 use auth_service::app_state::BannedTokenStoreType;
+use auth_service::app_state::EmailClientType;
 use auth_service::app_state::TwoFACodeStoreType;
 use auth_service::app_state::UserStoreType;
 use auth_service::app_state::AppState;
@@ -7,6 +8,7 @@ use auth_service::auth::VerifyTokenResponse;
 use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
+use auth_service::services::mock_email_client::MockEmailClient;
 use auth_service::utils::constants::test;
 use auth_service::Application;
 use auth_service::auth::auth_grpc_service_client::AuthGrpcServiceClient;
@@ -42,10 +44,12 @@ impl TestApp {
         // Specifying the type for being able to clone with Arc::clone
         let banned_token_store: BannedTokenStoreType = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let two_fa_code_store: TwoFACodeStoreType = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+        let email_client: EmailClientType = Arc::new(RwLock::new(MockEmailClient {}));
         let app_state = AppState::new(
             user_store, 
             Arc::clone(&banned_token_store),
-            Arc::clone(&two_fa_code_store)
+            Arc::clone(&two_fa_code_store),
+            email_client
         );
 
         let app: Application = Application::build(app_state,  test::APP_ADDRESS, test::GRPC_ADDRESS)
