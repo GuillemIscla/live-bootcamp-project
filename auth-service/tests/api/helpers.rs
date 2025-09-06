@@ -1,8 +1,10 @@
 use auth_service::app_state::BannedTokenStoreType;
+use auth_service::app_state::TwoFACodeStoreType;
 use auth_service::app_state::UserStoreType;
 use auth_service::app_state::AppState;
 use auth_service::auth::VerifyTokenRequest;
 use auth_service::auth::VerifyTokenResponse;
+use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
 use auth_service::utils::constants::test;
@@ -28,6 +30,7 @@ pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>, 
     pub banned_token_store: BannedTokenStoreType,
+    pub two_fa_code_store: TwoFACodeStoreType, 
     pub http_client: reqwest::Client,
     pub grpc_address: String,
     pub grpc_client: AuthGrpcServiceClient<tonic::transport::Channel>
@@ -36,8 +39,14 @@ pub struct TestApp {
 impl TestApp {
     pub async fn new(mock_user_store:Option<UserStoreType>) -> Self {
         let user_store = mock_user_store.unwrap_or(Arc::new(RwLock::new(HashmapUserStore::default())));
-        let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
-        let app_state = AppState::new(user_store, banned_token_store.clone());
+        // Specifying the type for being able to clone with Arc::clone
+        let banned_token_store: BannedTokenStoreType = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+        let two_fa_code_store: TwoFACodeStoreType = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+        let app_state = AppState::new(
+            user_store, 
+            Arc::clone(&banned_token_store),
+            Arc::clone(&two_fa_code_store)
+        );
 
         let app: Application = Application::build(app_state,  test::APP_ADDRESS, test::GRPC_ADDRESS)
             .await
@@ -70,7 +79,8 @@ impl TestApp {
         TestApp {
             address,
             cookie_jar,
-            banned_token_store: banned_token_store.clone(),
+            banned_token_store,
+            two_fa_code_store,
             http_client,
             grpc_address,
             grpc_client,

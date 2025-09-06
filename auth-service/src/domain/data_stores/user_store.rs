@@ -2,7 +2,7 @@ use crate::domain::{email::Email, password::Password, User};
 
 #[mockall::automock]
 #[async_trait::async_trait]
-pub trait UserStore: Sync + Send {
+pub trait UserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
 
     async fn delete_user(&mut self, email: &Email) -> Result<(), UserStoreError>;

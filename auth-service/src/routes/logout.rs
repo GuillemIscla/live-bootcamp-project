@@ -13,7 +13,7 @@ pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> Result<(Co
     validate_token(state.banned_token_store.clone(), &token).await.map_err(|_| AuthAPIError::InvalidToken)?;
 
     let mut banned_token_store = state.banned_token_store.write().await;
-    let _ = banned_token_store.store_token(cookie.clone().value().to_owned()).await;
+    let _ = banned_token_store.add_token(cookie.clone().value().to_owned()).await;
 
 
     //This method generates the cookie with no token but with the flags like HttpOnly, SameSite...

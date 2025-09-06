@@ -9,12 +9,12 @@ pub struct HashsetBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for HashsetBannedTokenStore{
-    async fn store_token(&mut self, token: String) -> Result<(), TokenStoreError> {
+    async fn add_token(&mut self, token: String) -> Result<(), TokenStoreError> {
         self.tokens.insert(token);
         Ok(())
     }
 
-    async fn token_exists(&self, token: &str) -> Result<bool, TokenStoreError> {
+    async fn check_token(&self, token: &str) -> Result<bool, TokenStoreError> {
         Ok(self.tokens.contains(token))
     }
 }
@@ -29,16 +29,16 @@ mod tests {
     async fn test_add_token() {
         let mut hashset_banned_user_store = HashsetBannedTokenStore::default();
         let token = "token_to_add".to_owned();
-        assert!(hashset_banned_user_store.store_token(token).await.is_ok());
+        assert!(hashset_banned_user_store.add_token(token).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_get_existing_token() {
         let mut hashset_banned_user_store = HashsetBannedTokenStore::default();
         let token = "token_to_add".to_owned();
-        let _ =hashset_banned_user_store.store_token(token.clone()).await;
+        let _ =hashset_banned_user_store.add_token(token.clone()).await;
 
-        assert!(hashset_banned_user_store.token_exists(&token).await == Ok(true))
+        assert!(hashset_banned_user_store.check_token(&token).await == Ok(true))
     }
 
     #[tokio::test]
@@ -46,6 +46,6 @@ mod tests {
         let hashset_banned_user_store = HashsetBannedTokenStore::default();
         let token = "not_added_token".to_owned();
 
-        assert!(hashset_banned_user_store.token_exists(&token).await == Ok(false))
+        assert!(hashset_banned_user_store.check_token(&token).await == Ok(false))
     }
 }

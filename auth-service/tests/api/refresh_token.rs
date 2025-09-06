@@ -71,11 +71,11 @@ async fn should_return_401_if_the_token_is_banned() {
         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
     );
     
-    // This is an inner scope to drop banned_token_store write reference once the store_token operation is finished
+    // This is an inner scope to drop banned_token_store write reference once the add_token operation is finished
     {
         let mut banned_token_store = app.banned_token_store.write().await;
-        let _ = banned_token_store.store_token(cookie.value().to_owned()).await;
-    }
+        let _ = banned_token_store.add_token(cookie.value().to_owned()).await;
+    } // dropping write lock here
     
     let response = app.post_refresh_token().await;
 

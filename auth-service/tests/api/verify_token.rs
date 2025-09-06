@@ -83,7 +83,7 @@ async fn should_return_401_if_banned_token() {
 
     let cookie = generate_auth_cookie(&random_email).unwrap();
 
-    let _ = app.banned_token_store.write().await.store_token(cookie.value().to_owned()).await;
+    let _ = app.banned_token_store.write().await.add_token(cookie.value().to_owned()).await;
 
     let test_case = serde_json::json!({
         "token": cookie.value(),

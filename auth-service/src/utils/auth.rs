@@ -61,7 +61,7 @@ fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
 
 // Check if JWT auth token is valid by decoding it using the JWT secret
 pub async fn validate_token(banned_token_store: BannedTokenStoreType, token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-    let _ = match banned_token_store.read().await.token_exists(token).await {
+    let _ = match banned_token_store.read().await.check_token(token).await {
         Ok(false) => (),
         Ok(true) => return Err(jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken)),
         _ => return Err(jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidKeyFormat)),
@@ -156,7 +156,7 @@ mod tests {
     async fn test_validate_token_with_banned_token() {
         let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let token = "banned_token".to_owned();
-        let _ = banned_token_store.write().await.store_token(token.clone());
+        let _ = banned_token_store.write().await.add_token(token.clone());
         let result = validate_token(banned_token_store, &token).await;
         assert!(result.is_err());
     }

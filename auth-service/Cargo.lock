@@ -95,6 +95,7 @@ dependencies = [
  "mockall",
  "prost",
  "prost-types",
+ "rand",
  "regex",
  "reqwest",
  "serde",
