@@ -57,7 +57,7 @@ impl TwoFACode {
         if code.len() != 6 {
             Err(format!("Code '{}' is of lenght '{}', it needs to be of lenght 6", code, code.len()))
         }
-        else if code.chars().all(|c| c.is_ascii_digit()) {
+        else if !code.chars().all(|c| c.is_ascii_digit()) {
             Err(format!("Code '{}' has non-digit characters", code))
         }
         else {
