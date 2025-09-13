@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use anyhow::Result;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower_http::services::ServeDir;
 use tokio::try_join;
 use tokio::sync::oneshot;
@@ -141,3 +142,6 @@ impl IntoResponse for AuthAPIError {
     }
 }
 
+pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new().max_connections(5).connect(url).await
+}
