@@ -28,7 +28,6 @@ impl BannedTokenStore for RedisBannedTokenStore {
     }
 
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
-        println!("{}", token);
         let key = get_key(&token);
         let mut connection = self.conn.write().await;
         connection.exists(key).map_err(|_| BannedTokenStoreError::UnexpectedError)

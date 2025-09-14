@@ -18,8 +18,6 @@ use auth_service::utils::constants::DATABASE_URL;
 use auth_service::utils::constants::REDIS_HOST_NAME;
 use auth_service::Application;
 use auth_service::auth::auth_grpc_service_client::AuthGrpcServiceClient;
-use redis::AsyncCommands;
-use redis::Commands;
 use reqwest::cookie::Jar;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgPoolOptions;
