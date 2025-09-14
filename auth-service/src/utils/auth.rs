@@ -95,7 +95,7 @@ mod tests {
 
     use tokio::sync::RwLock;
 
-    use crate::{domain::data_stores::banned_token_store::BannedTokenStore, services::hashset_banned_token_store::HashsetBannedTokenStore};
+    use crate::{domain::data_stores::banned_token_store::BannedTokenStore, services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore};
 
     use super::*;
 

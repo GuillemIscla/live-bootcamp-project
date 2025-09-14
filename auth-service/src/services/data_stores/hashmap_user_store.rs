@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::{data_stores::user_store::{UserStore, UserStoreError}, email::Email, password::Password, User};
+use crate::domain::{data_stores::user_store::{UserStore, UserStoreError}, email::Email, password::Password, User, UserHashed};
 
 #[derive(Debug, Default)]
 pub struct HashmapUserStore {
@@ -27,16 +27,23 @@ impl UserStore for HashmapUserStore {
         }
     }
 
-    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
+    //Here we don't hash the password, therefore password is equal to password_hash
+    async fn get_user(&self, email: &Email) -> Result<UserHashed, UserStoreError> {
         match self.users.get(email) {
-            Some(user) => Ok(user.clone()),
+            Some(User { email, password, requires_2fa}) => 
+                Ok(
+                    UserHashed { 
+                        email: email.clone(),
+                        password_hash: password.as_ref().to_owned(), 
+                        requires_2fa: requires_2fa.clone() 
+                }),
             None => Err(UserStoreError::UserNotFound),
         }
     }
 
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
         match self.get_user(email).await {
-            Ok(user) if user.password == *password => Ok(()),
+            Ok(user) if user.password_hash == *password.as_ref() => Ok(()),
             Ok(_) => Err(UserStoreError::InvalidCredentials),
             Err(error) => Err(error), //we return the same UserNotFound error required
         }

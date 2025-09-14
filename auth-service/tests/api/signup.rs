@@ -8,7 +8,7 @@ use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email(); // Call helper method to generate email
 
@@ -42,11 +42,13 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email();
 
@@ -72,13 +74,15 @@ async fn should_return_201_if_valid_input() {
             .expect("Could not deserialize response body to UserBody"),
         expected_response
     );
+
+    app.clean_up().await;
 }
 
 //...
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let bad_email_1 = "";
     let bad_email_2 = "user_name_a_domain";
@@ -121,12 +125,14 @@ async fn should_return_400_if_invalid_input() {
             "Invalid credentials".to_owned()
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_409_if_email_already_exists() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code    
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email();
 
@@ -157,6 +163,8 @@ async fn should_return_409_if_email_already_exists() {
             .error,
         "User already exists".to_owned()
     );
+
+    app.clean_up().await;
 }
 
 
@@ -202,7 +210,7 @@ async fn should_return_500_if_store_has_unexpected_error() {
         .returning(|_| Err(UserStoreError::QueryError));
 
 
-    let app = TestApp::new(Some(Arc::new(RwLock::new(mock_user_store)))).await;
+    let mut app = TestApp::new(Some(Arc::new(RwLock::new(mock_user_store)))).await;
 
     let response_no_connections = app.post_signup(&sign_up_request_no_connections).await;
 
@@ -239,4 +247,6 @@ async fn should_return_500_if_store_has_unexpected_error() {
             .error,
         "Unexpected error".to_owned()
     );
+
+    app.clean_up().await;
 }

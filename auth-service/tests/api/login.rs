@@ -3,7 +3,7 @@ use auth_service::{domain::email::Email, routes::TwoFactorAuthResponse, utils::c
 
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email();
 
@@ -32,11 +32,13 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
         .expect("No auth cookie found");
 
     assert!(!auth_cookie.value().is_empty());
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email();
     let random_email_typed = Email::parse(random_email.clone()).unwrap();
@@ -70,11 +72,13 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     );
 
     assert!(app.two_fa_code_store.read().await.get_code(&random_email_typed).await.is_ok());
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_422_if_malformed_credentials() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email(); // Call helper method to generate email
 
@@ -101,11 +105,13 @@ async fn should_return_422_if_malformed_credentials() {
             test_case
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
     let short_password = "short!";
     let random_email = get_random_email();
 
@@ -140,12 +146,14 @@ async fn should_return_400_if_invalid_input() {
             "Invalid credentials".to_owned()
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_incorrect_credentials() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code    
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email();
 
@@ -182,5 +190,7 @@ async fn should_return_401_if_incorrect_credentials() {
             .error,
         "Incorrect credentials".to_owned()
     );
+
+    app.clean_up().await;
 }
 

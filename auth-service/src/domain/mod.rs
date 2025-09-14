@@ -4,6 +4,7 @@ pub mod data_stores;
 pub mod email;
 pub use email::*;
 pub mod password;
+pub use password::*;
 
 pub use user::*;
 pub use error::*;

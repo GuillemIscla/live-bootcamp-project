@@ -1,3 +1,6 @@
+use sqlx::prelude::FromRow;
+use sqlx::Row;
+
 use crate::domain::{email::Email, password::Password};
 
 #[derive(PartialEq, Debug, Clone)]
@@ -14,5 +17,28 @@ impl User {
             password,
             requires_2fa,
         }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct UserHashed  {
+    pub email: Email,
+    pub password_hash: String,
+    pub requires_2fa: bool,
+}
+
+impl<'r> FromRow<'r, sqlx::postgres::PgRow> for UserHashed {
+    fn from_row(row: &'r sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
+        let email: Email = {
+            let raw_email = row.try_get::<String, _>("email")?;
+            Email::parse(raw_email.clone()).map_err(|_| sqlx::Error::Decode(format!("Email had the wrong format '{}'", raw_email).into()))?
+        };
+        let password_hash = row.try_get::<String, _>("password_hash")?;
+        let requires_2fa: bool = row.try_get::<bool, _>("requires_2fa")?;
+        Ok(UserHashed {
+            email,
+            password_hash,
+            requires_2fa,
+        })
     }
 }

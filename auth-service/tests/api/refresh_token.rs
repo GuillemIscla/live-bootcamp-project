@@ -4,7 +4,7 @@ use reqwest::{cookie::CookieStore, Url};
 
 #[tokio::test]
 async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let email = Email::parse(get_random_email()).unwrap();
 
@@ -29,11 +29,13 @@ async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
     let new_cookie_as_raw_header = format!("{:?}", new_cookie);
 
     assert_ne!(cookie_as_raw_header, new_cookie_as_raw_header);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_the_token_is_malformed() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     app.cookie_jar.add_cookie_str(
         "jwt=invalid",
@@ -43,11 +45,13 @@ async fn should_return_401_if_the_token_is_malformed() {
     let response = app.post_refresh_token().await;
 
     assert_eq!(response.status().as_u16(), 401);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_the_token_is_expired() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let cookie = generate_auth_cookie_empty();
 
@@ -59,11 +63,13 @@ async fn should_return_400_if_the_token_is_expired() {
     let response = app.post_refresh_token().await;
 
     assert_eq!(response.status().as_u16(), 400);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_the_token_is_banned() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
     let email = Email::parse(get_random_email()).unwrap();
     let cookie = generate_auth_cookie(&email).unwrap();
     app.cookie_jar.add_cookie_str(
@@ -80,4 +86,6 @@ async fn should_return_401_if_the_token_is_banned() {
     let response = app.post_refresh_token().await;
 
     assert_eq!(response.status().as_u16(), 401);
+    
+    app.clean_up().await;
 }

@@ -6,7 +6,7 @@ use auth_service::{auth::{verify_token_response::VerifyTokenStatus, VerifyTokenR
 //something that is already of the right type
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let test_cases = [
         serde_json::json!({
@@ -27,11 +27,13 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_200_valid_token() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = Email::parse(get_random_email()).unwrap();
 
@@ -44,6 +46,8 @@ async fn should_return_200_valid_token() {
     let response = app.post_verify_token(&test_case).await;
 
     assert_eq!(response.status().as_u16(), 200);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -61,11 +65,13 @@ async fn should_return_200_valid_token_in_grpc() {
     let status = VerifyTokenStatus::try_from(response.token_status);
 
     assert_eq!(status, Ok(VerifyTokenStatus::Valid));
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_invalid_token() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
     let test_case = serde_json::json!({
         "token": "invalid",
     });
@@ -73,11 +79,14 @@ async fn should_return_401_if_invalid_token() {
     let response = app.post_verify_token(&test_case).await;
 
     assert_eq!(response.status().as_u16(), 401);
+
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_banned_token() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let random_email = Email::parse(get_random_email()).unwrap();
 
@@ -92,6 +101,8 @@ async fn should_return_401_if_banned_token() {
     let response = app.post_verify_token(&test_case).await;
 
     assert_eq!(response.status().as_u16(), 401);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -105,4 +116,6 @@ async fn should_return_401_if_invalid_token_in_grpc() {
     let status = VerifyTokenStatus::try_from(response.token_status);
 
     assert_eq!(status, Ok(VerifyTokenStatus::Invalid));
+    
+    app.clean_up().await;
 }

@@ -21,7 +21,7 @@ impl BannedTokenStore for HashsetBannedTokenStore{
 
 #[cfg(test)]
 mod tests {
-    use crate::services::hashset_banned_token_store::HashsetBannedTokenStore;
+    use crate::services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore;
 
     use super::*;
 

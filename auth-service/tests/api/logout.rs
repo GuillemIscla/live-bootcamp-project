@@ -4,7 +4,7 @@ use reqwest::Url;
 
 #[tokio::test]
 async fn should_return_400_if_jwt_cookie_missing() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let response = app.post_logout().await;
 
@@ -22,11 +22,13 @@ async fn should_return_400_if_jwt_cookie_missing() {
             .error,
         "Missing token".to_owned()
     );
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_invalid_token() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     // add invalid cookie
     app.cookie_jar.add_cookie_str(
@@ -53,11 +55,13 @@ async fn should_return_401_if_invalid_token() {
             .error,
         "Invalid token".to_owned()
     );
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_200_if_valid_jwt_cookie() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let email = Email::parse("user@domain.com".to_owned()).unwrap();
 
@@ -76,17 +80,21 @@ async fn should_return_200_if_valid_jwt_cookie() {
         "Failed for input: "
     );
 
-    let banned_token_store = app.banned_token_store.read().await;
-    assert_eq!(
-        banned_token_store.check_token(cookie.value()).await, 
-        Ok(true), 
-            "Missing token from the store: {}", cookie.value()
-    );
+    {
+        let banned_token_store = app.banned_token_store.read().await;
+        assert_eq!(
+            banned_token_store.check_token(cookie.value()).await, 
+            Ok(true), 
+                "Missing token from the store: {}", cookie.value()
+        );
+    }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_logout_called_twice_in_a_row() {
-    let app = TestApp::new(None).await;
+    let mut app = TestApp::new(None).await;
 
     let email = Email::parse(get_random_email()).unwrap();
 
@@ -129,4 +137,6 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
             .error,
         "Missing token".to_owned()
     );
+
+    app.clean_up().await;
 }
