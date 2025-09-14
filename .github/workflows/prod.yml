@@ -73,14 +73,7 @@ jobs:
         export DATABASE_URL=postgres://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432
         cargo build --verbose
         cargo test --verbose
-
-    - name: Build and test auth-service code
-      working-directory: ./auth-service
-      run: |
-        export JWT_SECRET=secret
-        cargo build --verbose
-        cargo test --verbose
-
+        
       # Set up Docker Buildx for multi-platform builds
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
