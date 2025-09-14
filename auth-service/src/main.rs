@@ -1,7 +1,6 @@
 use auth_service::app_state::AppState;
-use auth_service::domain::data_stores::RedisBannedTokenStore;
+use auth_service::domain::data_stores::{RedisBannedTokenStore, RedisTwoFACodeStore};
 use auth_service::services::data_stores::{
-    hashmap_two_fa_code_store::HashmapTwoFACodeStore,
     postgres_user_store::PostgresUserStore,
     mock_email_client::MockEmailClient
 };
@@ -14,8 +13,8 @@ use std::sync::Arc;
 #[tokio::main]
 async fn main() {
     let redis_connection = Arc::new(RwLock::new(configure_redis()));
-    let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_connection)));
-    let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+    let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(Arc::clone(&redis_connection))));
+    let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
     let email_client = Arc::new(RwLock::new(MockEmailClient {}));
     let pg_pool = configure_postgresql().await;
     let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));

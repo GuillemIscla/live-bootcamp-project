@@ -6,13 +6,11 @@ use auth_service::app_state::AppState;
 use auth_service::auth::VerifyTokenRequest;
 use auth_service::auth::VerifyTokenResponse;
 use auth_service::domain::data_stores::RedisBannedTokenStore;
+use auth_service::domain::data_stores::RedisTwoFACodeStore;
 use auth_service::get_postgres_pool;
 use auth_service::get_redis_client;
 use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
-use auth_service::services::data_stores::{
-    hashmap_two_fa_code_store::HashmapTwoFACodeStore,
-    mock_email_client::MockEmailClient
-};
+use auth_service::services::data_stores::mock_email_client::MockEmailClient;
 use auth_service::utils::constants::test;
 use auth_service::utils::constants::DATABASE_URL;
 use auth_service::utils::constants::REDIS_HOST_NAME;
@@ -78,8 +76,8 @@ impl TestApp {
             };
 
         let redis_connection = Arc::new(RwLock::new(configure_redis()));
-        let banned_token_store: BannedTokenStoreType = Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_connection)));
-        let two_fa_code_store: TwoFACodeStoreType = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+        let banned_token_store: BannedTokenStoreType = Arc::new(RwLock::new(RedisBannedTokenStore::new(Arc::clone(&redis_connection))));
+        let two_fa_code_store: TwoFACodeStoreType = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
         let email_client: EmailClientType = Arc::new(RwLock::new(MockEmailClient {}));
         let app_state = AppState::new(
             user_store, 
