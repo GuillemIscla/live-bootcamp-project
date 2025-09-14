@@ -1,21 +1,24 @@
-use std::error::Error;
+use anyhow::Result;
 use axum::{
     http::StatusCode,
+    Json, Router,
     response::{IntoResponse, Response},
     routing::{delete, post},
     serve::Serve,
-    Json, Router,
 };
-use anyhow::Result;
+use domain::AuthAPIError;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower_http::services::ServeDir;
 use tokio::try_join;
 use tokio::sync::oneshot;
-use domain::AuthAPIError;
 use serde::{Deserialize, Serialize};
-use crate::{app_state::AppState, auth::auth_grpc_service_server::AuthGrpcServiceServer}; 
-
-use crate::presentation::grpc_auth_service_impl::AuthGrpcServiceImpl;
+use std::error::Error;
+use redis::{Client, RedisResult};
+use crate::{
+    app_state::AppState, 
+    auth::auth_grpc_service_server::AuthGrpcServiceServer,
+    presentation::grpc_auth_service_impl::AuthGrpcServiceImpl
+}; 
 
 pub mod app_state;
 pub mod domain;

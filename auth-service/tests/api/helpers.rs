@@ -5,17 +5,21 @@ use auth_service::app_state::UserStoreType;
 use auth_service::app_state::AppState;
 use auth_service::auth::VerifyTokenRequest;
 use auth_service::auth::VerifyTokenResponse;
+use auth_service::domain::data_stores::RedisBannedTokenStore;
 use auth_service::get_postgres_pool;
+use auth_service::get_redis_client;
 use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
 use auth_service::services::data_stores::{
     hashmap_two_fa_code_store::HashmapTwoFACodeStore,
-    hashset_banned_token_store::HashsetBannedTokenStore,
     mock_email_client::MockEmailClient
 };
 use auth_service::utils::constants::test;
 use auth_service::utils::constants::DATABASE_URL;
+use auth_service::utils::constants::REDIS_HOST_NAME;
 use auth_service::Application;
 use auth_service::auth::auth_grpc_service_client::AuthGrpcServiceClient;
+use redis::AsyncCommands;
+use redis::Commands;
 use reqwest::cookie::Jar;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgPoolOptions;
@@ -75,7 +79,8 @@ impl TestApp {
                 },
             };
 
-        let banned_token_store: BannedTokenStoreType = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+        let redis_connection = Arc::new(RwLock::new(configure_redis()));
+        let banned_token_store: BannedTokenStoreType = Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_connection)));
         let two_fa_code_store: TwoFACodeStoreType = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
         let email_client: EmailClientType = Arc::new(RwLock::new(MockEmailClient {}));
         let app_state = AppState::new(
@@ -303,4 +308,11 @@ async fn delete_database(db_name: &str) {
         .execute(format!(r#"DROP DATABASE "{}";"#, db_name).as_str())
         .await
         .expect("Failed to drop the database.");
+}
+
+fn configure_redis() -> redis::Connection {
+    get_redis_client(REDIS_HOST_NAME.to_owned())
+        .expect("Failed to get Redis client")
+        .get_connection()
+        .expect("Failed to get Redis connection")
 }

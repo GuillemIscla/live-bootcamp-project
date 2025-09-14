@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::domain::data_stores::banned_token_store::{BannedTokenStore, TokenStoreError};
+use crate::domain::data_stores::banned_token_store::{BannedTokenStore, BannedTokenStoreError};
 
 #[derive(Debug, Default)]
 pub struct HashsetBannedTokenStore {
@@ -9,12 +9,12 @@ pub struct HashsetBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for HashsetBannedTokenStore{
-    async fn add_token(&mut self, token: String) -> Result<(), TokenStoreError> {
+    async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
         self.tokens.insert(token);
         Ok(())
     }
 
-    async fn check_token(&self, token: &str) -> Result<bool, TokenStoreError> {
+    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
         Ok(self.tokens.contains(token))
     }
 }
@@ -38,7 +38,7 @@ mod tests {
         let token = "token_to_add".to_owned();
         let _ =hashset_banned_user_store.add_token(token.clone()).await;
 
-        assert!(hashset_banned_user_store.check_token(&token).await == Ok(true))
+        assert!(hashset_banned_user_store.contains_token(&token).await == Ok(true))
     }
 
     #[tokio::test]
@@ -46,6 +46,6 @@ mod tests {
         let hashset_banned_user_store = HashsetBannedTokenStore::default();
         let token = "not_added_token".to_owned();
 
-        assert!(hashset_banned_user_store.check_token(&token).await == Ok(false))
+        assert!(hashset_banned_user_store.contains_token(&token).await == Ok(false))
     }
 }
