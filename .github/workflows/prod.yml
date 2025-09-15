@@ -130,7 +130,7 @@ jobs:
         script: |
           cd ~
           export JWT_SECRET=${{ secrets.JWT_SECRET }}
-          export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
+          export AUTH_SERVICE_IP=${{ vars.URL_NAME }}
           export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           docker compose down
           docker compose pull
