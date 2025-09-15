@@ -24,10 +24,23 @@ services:
     container_name: nginx_reverse_proxy
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - certs:/etc/letsencrypt:ro          # Certificates from Certbot
+      - ./certbot/www:/var/www/certbot      # ACME challenge files
     depends_on:
       - app-service
       - auth-service
     restart: always
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certs:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done"
+
   db:
     image: postgres:15.2-alpine
     restart: always
@@ -46,3 +59,4 @@ services:
 volumes:
   db:
     driver: local
+  certs:
