@@ -5,11 +5,13 @@ use std::env as std_env;
 pub mod prod {
     pub const APP_ADDRESS: &str = "0.0.0.0:3000";
     pub const GRPC_ADDRESS: &str = "0.0.0.0:50051";
+    pub const ADD_DOMAIN: bool = true;
 }
 
 pub mod test {
     pub const APP_ADDRESS: &str = "127.0.0.1:0";
     pub const GRPC_ADDRESS: &str = "127.0.0.1:0";
+    pub const ADD_DOMAIN: bool = false;
 }
 
 // Define a lazily evaluated static. lazy_static is needed because std_env::var is not a const function.
