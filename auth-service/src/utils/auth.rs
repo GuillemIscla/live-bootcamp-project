@@ -8,25 +8,35 @@ use super::constants::{JWT_COOKIE_NAME, JWT_SECRET};
 // Create cookie with a new JWT auth token
 pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTokenError> {
     let token = generate_auth_token(email)?;
-    Ok(create_auth_cookie(token))
+    Ok(create_auth_cookie(token, false))
+}
+
+// Create cookie with a new JWT auth token
+pub fn generate_auth_cookie_without_domain(email: &Email) -> Result<Cookie<'static>, GenerateTokenError> {
+    let token = generate_auth_token(email)?;
+    Ok(create_auth_cookie(token, true))
 }
 
 // Create an empty cookie (for removing from the jar) with a new JWT auth token
 pub fn generate_auth_cookie_empty() -> Cookie<'static> {
-    create_auth_cookie("".to_owned())
+    create_auth_cookie("".to_owned(), true)
 }
 
 // Create cookie and set the value to the passed-in token string 
-fn create_auth_cookie(token: String) -> Cookie<'static> {
-    let cookie = Cookie::build((JWT_COOKIE_NAME, token))
+fn create_auth_cookie(token: String, without_domain:bool) -> Cookie<'static> {
+
+    let cookie_build = Cookie::build((JWT_COOKIE_NAME, token))
         .path("/") // apply cookie to all URLs on the server
         .http_only(true) // prevent JavaScript from accessing the cookie
-        .domain(".guillemrustbootcamp.xyz")
         .secure(true)
-        .same_site(SameSite::Lax) // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
-        .build();
+        .same_site(SameSite::Lax); // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
 
-    cookie
+    if without_domain {
+        cookie_build.build()
+    }
+    else {
+        cookie_build.domain(".guillemrustbootcamp.xyz").build()
+    }
 }
 
 #[derive(Debug)]
@@ -115,7 +125,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_auth_cookie() {
         let token = "test_token".to_owned();
-        let cookie = create_auth_cookie(token.clone());
+        let cookie = create_auth_cookie(token.clone(), true);
         assert_eq!(cookie.name(), JWT_COOKIE_NAME);
         assert_eq!(cookie.value(), token);
         assert_eq!(cookie.path(), Some("/"));
