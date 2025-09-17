@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{domain::email::Email, routes::TwoFactorAuthResponse, utils::constants::JWT_COOKIE_NAME, ErrorResponse};
+use auth_service::{domain::email::Email, routes::TwoFactorAuthResponse, ErrorResponse};
 
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
@@ -28,7 +28,7 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
 
     let auth_cookie = response
         .cookies()
-        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .find(|cookie| cookie.name() == &app.auth_settings.http.jwt_cookie_name)
         .expect("No auth cookie found");
 
     assert!(!auth_cookie.value().is_empty());

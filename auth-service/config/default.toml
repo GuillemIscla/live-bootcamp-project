@@ -1,0 +1,13 @@
+[http]
+address = "0.0.0.0:3000"
+jwt_token = ""
+jwt_cookie_name = "jwt"
+
+[grpc]
+address = "0.0.0.0:50051"
+
+[databaes]
+url = "postgres://postgres:${POSTGRES_PASSWORD}@localhost:5432"
+
+[redis]
+host_name = "127.0.0.1"

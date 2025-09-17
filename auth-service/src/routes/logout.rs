@@ -2,15 +2,17 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::CookieJar;
 
 use crate::{
-    app_state::AppState, domain::AuthAPIError, utils::{auth::{generate_auth_cookie_empty, validate_token}, constants::JWT_COOKIE_NAME}
+    app_state::AppState, domain::AuthAPIError, utils::{auth::{generate_auth_cookie_empty, validate_token}, HttpSettings}
 };
 
 pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
-    let cookie = jar.get(JWT_COOKIE_NAME).ok_or(AuthAPIError::MissingToken)?;
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
+    let cookie = jar.get(&jwt_cookie_name).ok_or(AuthAPIError::MissingToken)?;
 
     let token = cookie.value().to_owned();
 
-    validate_token(state.banned_token_store.clone(), &token).await.map_err(|_| AuthAPIError::InvalidToken)?;
+
+    validate_token(state.banned_token_store.clone(), &token, jwt_token).await.map_err(|_| AuthAPIError::InvalidToken)?;
 
     let mut banned_token_store = state.banned_token_store.write().await;
     let _ = banned_token_store.add_token(cookie.clone().value().to_owned()).await;
@@ -19,7 +21,7 @@ pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> Result<(Co
     //This method generates the cookie with no token but with the flags like HttpOnly, SameSite...
     //I found that, in my browser, I would need those flags in the Set-Cookie headers that removes the cookie
     //however, other browsers from other students did not need the flags. 
-    let cookie = generate_auth_cookie_empty();
+    let cookie = generate_auth_cookie_empty(jwt_cookie_name);
 
     Ok((jar.remove(cookie), StatusCode::OK))
 }

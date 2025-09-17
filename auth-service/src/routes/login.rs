@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_state::AppState, 
     domain::{data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode}, email::Email, password::Password, AuthAPIError},
-    utils::auth::generate_auth_cookie,
+    utils::{auth::generate_auth_cookie, HttpSettings},
 };
 
 pub async fn login(
@@ -24,7 +24,10 @@ pub async fn login(
 
     match user.requires_2fa {
         true => handle_2fa(&user.email, &state, jar).await,
-        false => handle_no_2fa(&user.email, jar).await,
+        false => {
+            let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
+            handle_no_2fa(&user.email, jar, jwt_token, jwt_cookie_name).await
+        },
     }
     
 }
@@ -64,8 +67,10 @@ async fn handle_2fa(
 async fn handle_no_2fa(
     email: &Email,
     jar: CookieJar,
+    jwt_secret:String,
+    jwt_cookie_name:String
 ) -> Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
-    let auth_cookie = generate_auth_cookie(&email).map_err(|_| AuthAPIError::UnexpectedError)?;
+    let auth_cookie = generate_auth_cookie(&email, jwt_secret, jwt_cookie_name).map_err(|_| AuthAPIError::UnexpectedError)?;
 
     let updated_jar = jar.add(auth_cookie);
 

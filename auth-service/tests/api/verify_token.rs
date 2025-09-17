@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{auth::{verify_token_response::VerifyTokenStatus, VerifyTokenRequest}, domain::email::Email, utils::auth::generate_auth_cookie};
+use auth_service::{auth::{verify_token_response::VerifyTokenStatus, VerifyTokenRequest}, domain::email::Email, utils::{auth::generate_auth_cookie, HttpSettings}};
 
 
 //grpc counterpart doesn't make sense here since the client does not accept just any request but 
@@ -37,7 +37,9 @@ async fn should_return_200_valid_token() {
 
     let random_email = Email::parse(get_random_email()).unwrap();
 
-    let token = generate_auth_cookie(&random_email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+
+    let token = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name).unwrap();
 
     let test_case = serde_json::json!({
         "token": token.value(),
@@ -56,7 +58,9 @@ async fn should_return_200_valid_token_in_grpc() {
 
     let random_email = Email::parse(get_random_email()).unwrap();
 
-    let token = generate_auth_cookie(&random_email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+
+    let token = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name).unwrap();
 
     let test_case = VerifyTokenRequest { token: token.value().to_owned() } ;
 
@@ -90,7 +94,9 @@ async fn should_return_401_if_banned_token() {
 
     let random_email = Email::parse(get_random_email()).unwrap();
 
-    let cookie = generate_auth_cookie(&random_email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+
+    let cookie = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name).unwrap();
 
     let _ = app.banned_token_store.write().await.add_token(cookie.value().to_owned()).await;
 

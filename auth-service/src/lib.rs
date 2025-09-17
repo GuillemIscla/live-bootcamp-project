@@ -47,7 +47,7 @@ impl Application {
         //Grpc router
         let listener = tokio::net::TcpListener::bind(grpc_address).await?;
         let grpc_address = listener.local_addr()?.to_string();
-        let auth_service = AuthGrpcServiceImpl::new(app_state.banned_token_store.clone());
+        let auth_service = AuthGrpcServiceImpl::new(app_state.banned_token_store.clone(), app_state.auth_settings.http.jwt_token.clone());
         let grpc_router =  tonic::transport::Server::builder()
             .add_service(AuthGrpcServiceServer::new(auth_service));
 

@@ -1,4 +1,4 @@
-use auth_service::{domain::email::Email, utils::{auth::generate_auth_cookie_without_domain, constants::JWT_COOKIE_NAME}, ErrorResponse};
+use auth_service::{domain::email::Email, utils::{auth::generate_auth_cookie_without_domain, HttpSettings}, ErrorResponse};
 use crate::helpers::{get_random_email, TestApp};
 use reqwest::Url;
 
@@ -34,7 +34,7 @@ async fn should_return_401_if_invalid_token() {
     app.cookie_jar.add_cookie_str(
         &format!(
             "{}=invalid; HttpOnly; SameSite=Lax; Secure; Path=/",
-            JWT_COOKIE_NAME
+            app.auth_settings.http.jwt_cookie_name
         ),
         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
     );
@@ -65,7 +65,9 @@ async fn should_return_200_if_valid_jwt_cookie() {
 
     let email = Email::parse("user@domain.com".to_owned()).unwrap();
 
-    let cookie = generate_auth_cookie_without_domain(&email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
 
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),
@@ -98,7 +100,9 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
 
     let email = Email::parse(get_random_email()).unwrap();
 
-    let cookie = generate_auth_cookie_without_domain(&email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
 
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),

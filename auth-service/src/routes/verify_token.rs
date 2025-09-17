@@ -44,7 +44,8 @@ impl VerifyTokenSummary {
 }
 
 pub async fn verify_token_html(State(state): State<AppState>, Json(request): Json<VerifyTokenRequest>) -> impl IntoResponse {
-    match VerifyTokenSummary::new(validate_token(state.banned_token_store, &request.token).await) {
+    let jwt_token = state.auth_settings.http.jwt_token;
+    match VerifyTokenSummary::new(validate_token(state.banned_token_store, &request.token, jwt_token).await) {
         VerifyTokenSummary::Valid => StatusCode::OK.into_response(),
         VerifyTokenSummary::Invalid => StatusCode::UNAUTHORIZED.into_response(),
         VerifyTokenSummary::UnprocessableContent => StatusCode::UNPROCESSABLE_ENTITY.into_response(),
@@ -52,8 +53,8 @@ pub async fn verify_token_html(State(state): State<AppState>, Json(request): Jso
     }
 }
 
-pub async fn verify_token_grpc(banned_token_store: BannedTokenStoreType, token:String) -> VerifyTokenStatus {
-    match VerifyTokenSummary::new(validate_token(banned_token_store, &token).await) {
+pub async fn verify_token_grpc(banned_token_store: BannedTokenStoreType, token:String, jwt_token: String) -> VerifyTokenStatus {
+    match VerifyTokenSummary::new(validate_token(banned_token_store, &token, jwt_token).await) {
         VerifyTokenSummary::Valid => VerifyTokenStatus::Valid,
         VerifyTokenSummary::Invalid => VerifyTokenStatus::Invalid,
         VerifyTokenSummary::UnexpectedError => VerifyTokenStatus::UnexpectedError,

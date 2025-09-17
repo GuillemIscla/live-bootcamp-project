@@ -1,4 +1,4 @@
-use auth_service::{domain::{data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode}, Email}, utils::constants::JWT_COOKIE_NAME};
+use auth_service::{domain::{data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode}, Email}};
 use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
@@ -35,7 +35,7 @@ async fn should_return_200_if_correct_code() {
 
     let auth_cookie = response
         .cookies()
-        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .find(|cookie| cookie.name() == app.auth_settings.http.jwt_cookie_name)
         .expect("No auth cookie found");
 
     assert!(!auth_cookie.value().is_empty());
@@ -252,7 +252,7 @@ async fn should_return_401_if_same_code_twice() {
 
     let auth_cookie = response
         .cookies()
-        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .find(|cookie| cookie.name() == app.auth_settings.http.jwt_cookie_name)
         .expect("No auth cookie found");
 
     assert!(!auth_cookie.value().is_empty());

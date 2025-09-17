@@ -1,8 +1,7 @@
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::{
     domain::email::Email, 
-    utils::auth::{generate_auth_cookie_without_domain, generate_auth_cookie_empty},
-    utils::constants::JWT_COOKIE_NAME
+    utils::{auth::{generate_auth_cookie_empty, generate_auth_cookie_without_domain}, HttpSettings},
 };
 use reqwest::{cookie::CookieStore, Url};
 
@@ -12,7 +11,9 @@ async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
 
     let email = Email::parse(get_random_email()).unwrap();
 
-    let cookie = generate_auth_cookie_without_domain(&email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
 
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),
@@ -40,7 +41,7 @@ async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
 
     let cookie = response
         .cookies()
-        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .find(|cookie| cookie.name() == app.auth_settings.http.jwt_cookie_name)
         .expect("No auth cookie found");
 
     //If hitting refresh creating the cookie right away will get exactly the same cookie and 
@@ -81,7 +82,9 @@ async fn should_return_401_if_the_token_is_malformed() {
 async fn should_return_400_if_the_token_is_expired() {
     let mut app = TestApp::new(None).await;
 
-    let cookie = generate_auth_cookie_empty();
+    let jwt_cookie_name = app.auth_settings.http.jwt_cookie_name.clone();
+
+    let cookie = generate_auth_cookie_empty(jwt_cookie_name);
 
     app.cookie_jar.add_cookie_str(
         cookie.value(),
@@ -99,7 +102,8 @@ async fn should_return_400_if_the_token_is_expired() {
 async fn should_return_401_if_the_token_is_banned() {
     let mut app = TestApp::new(None).await;
     let email = Email::parse(get_random_email()).unwrap();
-    let cookie = generate_auth_cookie_without_domain(&email).unwrap();
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),
         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),

@@ -7,6 +7,7 @@ use crate::app_state::AppState;
 use crate::domain::data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode};
 use crate::domain::{AuthAPIError, Email};
 use crate::utils::auth::generate_auth_cookie;
+use crate::utils::HttpSettings;
 
 pub async fn verify_2fa(
     State(state): State<AppState>,
@@ -30,7 +31,9 @@ pub async fn verify_2fa(
         return Err(AuthAPIError::IncorrectCredentials);
     } 
 
-    let auth_cookie = generate_auth_cookie(&email).map_err(|_| AuthAPIError::UnexpectedError)?;
+    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
+
+    let auth_cookie = generate_auth_cookie(&email, jwt_token, jwt_cookie_name).map_err(|_| AuthAPIError::UnexpectedError)?;
 
     let updated_jar = jar.add(auth_cookie);
 
