@@ -1,2 +1,2 @@
 [grpc]
-server_address = "http://auth-service:50051"
+server_address = "http://127.0.0.1:50051"

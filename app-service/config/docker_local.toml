@@ -1,0 +1,2 @@
+[grpc]
+server_address = "http://auth-service:50051"
