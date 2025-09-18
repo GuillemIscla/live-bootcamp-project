@@ -33,7 +33,9 @@ pub async fn verify_2fa(
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
 
-    let auth_cookie = generate_auth_cookie(&email, jwt_token, jwt_cookie_name).map_err(|_| AuthAPIError::UnexpectedError)?;
+    let token_ttl_millis = state.auth_settings.redis.ttl_millis;
+
+    let auth_cookie = generate_auth_cookie(&email, jwt_token, jwt_cookie_name, token_ttl_millis).map_err(|_| AuthAPIError::UnexpectedError)?;
 
     let updated_jar = jar.add(auth_cookie);
 

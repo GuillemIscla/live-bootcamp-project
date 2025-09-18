@@ -3,18 +3,16 @@ use std::sync::Arc;
 use redis::{Commands, Connection};
 use tokio::sync::RwLock;
 
-use crate::{
-    domain::data_stores::{BannedTokenStore, BannedTokenStoreError},
-    utils::auth::TOKEN_TTL_SECONDS,
-};
+use crate::domain::data_stores::{BannedTokenStore, BannedTokenStoreError};
 
 pub struct RedisBannedTokenStore {
     conn: Arc<RwLock<Connection>>,
+    token_ttl_millis: i64,
 }
 
 impl RedisBannedTokenStore {
-    pub fn new(conn: Arc<RwLock<Connection>>) -> Self {
-        Self { conn }
+    pub fn new(conn: Arc<RwLock<Connection>>, token_ttl_millis: i64) -> Self {
+        Self { conn,  token_ttl_millis }
     }
 }
 
@@ -22,8 +20,8 @@ impl RedisBannedTokenStore {
 impl BannedTokenStore for RedisBannedTokenStore {
     async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
         let key = get_key(&token);
-        let mut connection = self.conn.write().await;
-        let ttl_seconds: u64 = TOKEN_TTL_SECONDS.try_into().map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+        let mut connection: tokio::sync::RwLockWriteGuard<'_, Connection> = self.conn.write().await;
+        let ttl_seconds: u64 = (self.token_ttl_millis / 1000).try_into().map_err(|_| BannedTokenStoreError::UnexpectedError)?;
         connection.set_ex(key, true, ttl_seconds).map_err(|_| BannedTokenStoreError::UnexpectedError)
     }
 

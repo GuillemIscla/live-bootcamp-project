@@ -29,6 +29,7 @@ pub struct DatabaseSettings {
 #[derive(Deserialize, Clone)]
 pub struct RedisSettings {
     pub host_name: String,
+    pub ttl_millis: i64,
 }
 
 

@@ -12,8 +12,9 @@ async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
     let email = Email::parse(get_random_email()).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),
@@ -103,7 +104,8 @@ async fn should_return_401_if_the_token_is_banned() {
     let mut app = TestApp::new(None).await;
     let email = Email::parse(get_random_email()).unwrap();
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
-    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),
         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),

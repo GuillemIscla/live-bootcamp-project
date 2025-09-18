@@ -66,8 +66,9 @@ async fn should_return_200_if_valid_jwt_cookie() {
     let email = Email::parse("user@domain.com".to_owned()).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),
@@ -101,8 +102,9 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
     let email = Email::parse(get_random_email()).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name).unwrap();
+    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
     app.cookie_jar.add_cookie_str(
         &format!("{}", cookie),

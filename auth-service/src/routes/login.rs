@@ -26,7 +26,8 @@ pub async fn login(
         true => handle_2fa(&user.email, &state, jar).await,
         false => {
             let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
-            handle_no_2fa(&user.email, jar, jwt_token, jwt_cookie_name).await
+            let token_ttl_millis = state.auth_settings.redis.ttl_millis;
+            handle_no_2fa(&user.email, jar, jwt_token, jwt_cookie_name, token_ttl_millis).await
         },
     }
     
@@ -68,9 +69,10 @@ async fn handle_no_2fa(
     email: &Email,
     jar: CookieJar,
     jwt_secret:String,
-    jwt_cookie_name:String
+    jwt_cookie_name:String,
+    token_ttl_millis: i64
 ) -> Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
-    let auth_cookie = generate_auth_cookie(&email, jwt_secret, jwt_cookie_name).map_err(|_| AuthAPIError::UnexpectedError)?;
+    let auth_cookie = generate_auth_cookie(&email, jwt_secret, jwt_cookie_name, token_ttl_millis).map_err(|_| AuthAPIError::UnexpectedError)?;
 
     let updated_jar = jar.add(auth_cookie);
 

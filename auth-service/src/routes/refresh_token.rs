@@ -30,9 +30,10 @@ pub async fn refresh_token(State(state): State<AppState>, jar: CookieJar) -> Res
             .claims
             .sub;
     let email = Email::parse(email_raw).map_err(|_| AuthAPIError::InvalidToken)?;
+    let token_ttl_millis = state.auth_settings.redis.ttl_millis;
 
     let new_cookie = 
-        generate_auth_cookie(&email, jwt_token, jwt_cookie_name)
+        generate_auth_cookie(&email, jwt_token, jwt_cookie_name, token_ttl_millis)
             .map_err(|_| AuthAPIError::IncorrectCredentials)?;
 
     println!("new cookie value {}", new_cookie.value());

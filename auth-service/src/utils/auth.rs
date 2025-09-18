@@ -5,14 +5,14 @@ use serde::{Deserialize, Serialize};
 use crate::{app_state::BannedTokenStoreType, domain::email::Email};
 
 // Create cookie with a new JWT auth token
-pub fn generate_auth_cookie(email: &Email, jwt_secret:String, jwt_cookie_name:String) -> Result<Cookie<'static>, GenerateTokenError> {
-    let token = generate_auth_token(email, jwt_secret)?;
+pub fn generate_auth_cookie(email: &Email, jwt_secret:String, jwt_cookie_name:String, token_ttl_millis:i64) -> Result<Cookie<'static>, GenerateTokenError> {
+    let token = generate_auth_token(email, jwt_secret, token_ttl_millis)?;
     Ok(create_auth_cookie(token, false, jwt_cookie_name))
 }
 
 // Create cookie with a new JWT auth token
-pub fn generate_auth_cookie_without_domain(email: &Email, jwt_secret:String, jwt_cookie_name:String) -> Result<Cookie<'static>, GenerateTokenError> {
-    let token = generate_auth_token(email, jwt_secret)?;
+pub fn generate_auth_cookie_without_domain(email: &Email, jwt_secret:String, jwt_cookie_name:String, token_ttl_millis:i64) -> Result<Cookie<'static>, GenerateTokenError> {
+    let token = generate_auth_token(email, jwt_secret, token_ttl_millis)?;
     Ok(create_auth_cookie(token, true, jwt_cookie_name))
 }
 
@@ -44,12 +44,12 @@ pub enum GenerateTokenError {
     UnexpectedError,
 }
 
-// This value determines how long the JWT auth token is valid for
-pub const TOKEN_TTL_SECONDS: i64 = 600; // 10 minutes
+// // This value determines how long the JWT auth token is valid for
+// pub const TOKEN_TTL_SECONDS: i64 = 600; // 10 minutes
 
 // Create JWT auth token
-fn generate_auth_token(email: &Email, jwt_secret: String) -> Result<String, GenerateTokenError> {
-    let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
+fn generate_auth_token(email: &Email, jwt_secret: String, token_ttl_millis:i64) -> Result<String, GenerateTokenError> {
+    let delta = chrono::Duration::try_milliseconds(token_ttl_millis)
         .ok_or(GenerateTokenError::UnexpectedError)?;
 
     // Create JWT expiration time
@@ -115,7 +115,8 @@ mod tests {
         let jwt_token = "secret".to_owned();
         let jwt_cookie_name = "jwt".to_owned();
         let email = Email::parse("test@example.com".to_owned()).unwrap();
-        let cookie = generate_auth_cookie(&email, jwt_token, jwt_cookie_name.clone()).unwrap();
+        let token_ttl_millis:i64 = 100;
+        let cookie = generate_auth_cookie(&email, jwt_token, jwt_cookie_name.clone(), token_ttl_millis).unwrap();
         assert_eq!(cookie.name(), &jwt_cookie_name);
         assert_eq!(cookie.value().split('.').count(), 3);
         assert_eq!(cookie.path(), Some("/"));
@@ -139,7 +140,8 @@ mod tests {
     async fn test_generate_auth_token() {
         let jwt_token = "secret".to_owned();
         let email = Email::parse("test@example.com".to_owned()).unwrap();
-        let result = generate_auth_token(&email, jwt_token).unwrap();
+        let token_ttl_millis:i64 = 100;
+        let result = generate_auth_token(&email, jwt_token, token_ttl_millis).unwrap();
         assert_eq!(result.split('.').count(), 3);
     }
 
@@ -148,14 +150,17 @@ mod tests {
         let jwt_token = "secret".to_owned();
         let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let email = Email::parse("test@example.com".to_owned()).unwrap();
-        let token = generate_auth_token(&email, jwt_token.clone()).unwrap();
+        let token_ttl_millis:i64 = 600 * 1000;
+        let token = generate_auth_token(&email, jwt_token.clone(), token_ttl_millis).unwrap();
         let result = validate_token(banned_token_store, &token, jwt_token).await.unwrap();
         assert_eq!(result.sub, "test@example.com");
 
         let exp = Utc::now()
-            .checked_add_signed(chrono::Duration::try_minutes(9).expect("valid duration"))
+            .checked_add_signed(chrono::Duration::try_milliseconds(token_ttl_millis - 60 * 1000).expect("valid duration"))
             .expect("valid timestamp")
             .timestamp();
+
+        println!("result.exp {}, exp {}", result.exp, exp);
 
         assert!(result.exp > exp as usize);
     }

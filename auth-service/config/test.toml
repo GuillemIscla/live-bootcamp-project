@@ -3,3 +3,6 @@ address = "127.0.0.1:0"
 
 [grpc]
 address = "127.0.0.1:0"
+
+[redis]
+ttl_millis = 1000

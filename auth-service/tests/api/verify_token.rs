@@ -38,8 +38,9 @@ async fn should_return_200_valid_token() {
     let random_email = Email::parse(get_random_email()).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let token = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name).unwrap();
+    let token = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
     let test_case = serde_json::json!({
         "token": token.value(),
@@ -59,8 +60,9 @@ async fn should_return_200_valid_token_in_grpc() {
     let random_email = Email::parse(get_random_email()).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let token = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name).unwrap();
+    let token = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
     let test_case = VerifyTokenRequest { token: token.value().to_owned() } ;
 
@@ -95,8 +97,9 @@ async fn should_return_401_if_banned_token() {
     let random_email = Email::parse(get_random_email()).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let cookie = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name).unwrap();
+    let cookie = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
     let _ = app.banned_token_store.write().await.add_token(cookie.value().to_owned()).await;
 

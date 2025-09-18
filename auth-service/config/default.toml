@@ -11,3 +11,4 @@ url = "postgres://postgres:${POSTGRES_PASSWORD}@localhost:5432"
 
 [redis]
 host_name = "127.0.0.1"
+ttl_millis = 600000

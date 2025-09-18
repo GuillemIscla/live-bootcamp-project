@@ -14,7 +14,7 @@ use std::sync::Arc;
 async fn main() {
     let auth_settings = AuthSettings::new();
     let redis_connection = Arc::new(RwLock::new(configure_redis(auth_settings.redis.host_name.clone())));
-    let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(Arc::clone(&redis_connection))));
+    let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(Arc::clone(&redis_connection), auth_settings.redis.ttl_millis)));
     let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_connection)));
     let email_client = Arc::new(RwLock::new(MockEmailClient {}));
     let pg_pool = configure_postgresql(&auth_settings.database.url).await;
