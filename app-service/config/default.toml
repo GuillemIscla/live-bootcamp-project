@@ -1,0 +1,2 @@
+[grpc]
+server_address = "http://0.0.0.0:50051"

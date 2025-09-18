@@ -2,32 +2,42 @@ use std::env;
 
 use askama::Template;
 use axum::{
-    http::StatusCode,
-    response::{Html, IntoResponse},
-    routing::get,
-    Json, Router,
+    extract::State, 
+    http::StatusCode, 
+    response::{Html, IntoResponse}, 
+    routing::get, 
+    Json, 
+    Router
 };
 use axum_extra::extract::CookieJar;
 use serde::Serialize;
 use tower_http::services::ServeDir;
-use presentation::grpc_auth_service_client_impl::AuthGrpcServiceClientImpl;
+use presentation::grpc_auth_service_client_impl::{AuthGrpcServiceClientImpl, VerifyToken};
 pub mod auth {
     tonic::include_proto!("auth"); // matches `package auth`
 }
+use crate::{app_state::AppState, utils::app_settings::AppSettings};
 
 pub mod presentation;
+pub mod utils;
+pub mod app_state;
 
 #[tokio::main]
 async fn main() {
 
-    let grpc_address = "http://auth-service:50051";
-    let mut _auth_grpc_service_client = 
+    let app_settings = AppSettings::new();
+
+    let grpc_address = &app_settings.grpc.server_address;
+    let auth_grpc_service_client = 
         AuthGrpcServiceClientImpl::new(grpc_address).await.unwrap();
+
+    let app_state = AppState::new(auth_grpc_service_client);
 
     let router_internal = Router::new()
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))
-        .route("/protected", get(protected));
+        .route("/protected", get(protected))
+        .with_state(app_state);
 
     let app = Router::new()
         .nest("/app", router_internal); // <- prepend /app here for nginx
@@ -60,32 +70,20 @@ async fn root() -> impl IntoResponse {
     Html(template.render().unwrap())
 }
 
-async fn protected(jar: CookieJar) -> impl IntoResponse {
+async fn protected(State(AppState { mut grpc_client}  ): State<AppState>, jar: CookieJar) -> impl IntoResponse {
     let jwt_cookie = match jar.get("jwt") {
         Some(cookie) => cookie,
         None => {
             return StatusCode::UNAUTHORIZED.into_response();
         }
     };
-    let api_client = reqwest::Client::builder().build().unwrap();
-    let verify_token_body = serde_json::json!({
-        "token": &jwt_cookie.value(),
-    });
-    let auth_hostname = env::var("AUTH_SERVICE_HOST_NAME").unwrap_or("0.0.0.0".to_owned());
-    let url = format!("http://{}:3000/auth/verify-token", auth_hostname);
 
-    let response = match api_client.post(&url).json(&verify_token_body).send().await {
-        Ok(response) => response,
-        Err(_) => {
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
-
-    match response.status() {
-        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::BAD_REQUEST => {
+    let response = grpc_client.verify_token(&jwt_cookie.value()).await;
+    match response {
+        VerifyToken::Invalid | VerifyToken::UnprocessableContent => {
             StatusCode::UNAUTHORIZED.into_response()
         }
-        reqwest::StatusCode::OK => Json(ProtectedRouteResponse {
+        VerifyToken::Valid => Json(ProtectedRouteResponse {
             img_url: "https://cdn.guillemrustbootcamp.xyz/Light-Live-Bootcamp-Certificate.png".to_owned(),
         })
         .into_response(),

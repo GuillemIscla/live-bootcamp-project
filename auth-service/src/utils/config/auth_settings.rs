@@ -56,8 +56,8 @@ impl AuthSettings {
 
         let cfg = builder.build().unwrap();
 
-        let aut_settings: AuthSettings = cfg.try_deserialize().unwrap();
-        aut_settings.validate()
+        let auth_settings: AuthSettings = cfg.try_deserialize().unwrap();
+        auth_settings.validate()
     }
 
     fn validate(self) -> Self {

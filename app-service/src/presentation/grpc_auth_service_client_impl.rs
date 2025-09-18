@@ -11,6 +11,7 @@ pub enum VerifyToken {
     UnexpectedError,
 }
 
+#[derive(Clone)]
 pub struct AuthGrpcServiceClientImpl {
     internal_client: AuthGrpcServiceClient<Channel>,
 }
@@ -33,7 +34,7 @@ impl AuthGrpcServiceClientImpl {
             Ok(verify_token_response) => {
                 match VerifyTokenStatus::try_from(verify_token_response.into_inner().token_status) {
                     Ok(VerifyTokenStatus::Valid) => VerifyToken::Valid,
-                    Ok(VerifyTokenStatus::Invalid) => VerifyToken::Valid,
+                    Ok(VerifyTokenStatus::Invalid) => VerifyToken::Invalid,
                     Ok(VerifyTokenStatus::UnprocessableContent) => VerifyToken::UnprocessableContent,
                     _ => VerifyToken::UnexpectedError,
                 }

@@ -36,5 +36,6 @@ FROM debian:buster-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/target/release/app-service /usr/local/bin
 COPY --from=builder /app/assets /app/assets
+COPY --from=builder /app/config /app/config
 ENV AUTH_SERVICE_HOST_NAME=auth-service
 ENTRYPOINT ["/usr/local/bin/app-service"]
