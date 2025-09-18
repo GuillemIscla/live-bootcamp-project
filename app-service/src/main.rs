@@ -28,6 +28,7 @@ async fn main() {
     let app_settings = AppSettings::new();
 
     let grpc_address = &app_settings.grpc.server_address;
+    println!("grpc_address: '{}'", grpc_address);
     let auth_grpc_service_client = 
         AuthGrpcServiceClientImpl::new(grpc_address).await.unwrap();
 
