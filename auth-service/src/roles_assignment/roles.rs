@@ -1,6 +1,16 @@
 use crate::utils::auth::Claims;
 
-pub enum Roles {
-    User_Odd{ token: String, claims:Claims},
-    User_Even{ token: String, claims:Claims},
+trait Role {}
+
+pub struct UserOdd{ 
+    token: String, 
+    claims:Claims
 }
+
+impl Role for UserOdd {}
+
+pub struct UserEven{ 
+    token: String, 
+    claims:Claims
+}
+impl Role for UserEven {}

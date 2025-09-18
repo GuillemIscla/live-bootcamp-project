@@ -134,6 +134,7 @@ jobs:
           export JWT_SECRET=${{ secrets.JWT_SECRET }}
           export AUTH_SERVICE_IP=${{ vars.URL_NAME }}
           export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          export RUN_ENV=${{ vars.RUN_ENV }}
           docker compose down
           docker compose pull
           docker compose up -d
