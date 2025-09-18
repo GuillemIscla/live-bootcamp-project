@@ -63,6 +63,7 @@ jobs:
     - name: Build and test app-service code
       working-directory: ./app-service
       run: |
+        export RUN_ENV=${{ vars.RUN_ENV }}
         cargo build --verbose
         cargo test --verbose
 
@@ -71,6 +72,7 @@ jobs:
       run: |
         export JWT_SECRET=secret
         export DATABASE_URL=postgres://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432
+        export RUN_ENV=${{ vars.RUN_ENV }}
         cargo build --verbose
         cargo test --verbose
         

@@ -24,6 +24,7 @@ pub mod app_state;
 pub mod domain;
 pub mod presentation;
 pub mod routes;
+pub mod roles_assignment;
 pub mod services;
 pub mod utils;
 
