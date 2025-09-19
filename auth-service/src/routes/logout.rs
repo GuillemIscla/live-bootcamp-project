@@ -1,17 +1,27 @@
-use axum::{extract::{State, Extension}, http::StatusCode, response::IntoResponse};
+use axum::{
+    extract::{
+        State, 
+        // Extension
+    }, 
+    http::StatusCode, 
+    response::IntoResponse
+};
 use axum_extra::extract::CookieJar;
 
 use crate::{
-    app_state::AppState, domain::AuthAPIError, roles_assignment::UserRole, utils::{auth::{generate_auth_cookie_empty, validate_token}, HttpSettings}
+    app_state::AppState, 
+    domain::AuthAPIError, 
+    // roles_assignment::UserRole, 
+    utils::{auth::{generate_auth_cookie_empty, validate_token}, HttpSettings}
 };
 
 pub async fn logout(
     State(state): State<AppState>, 
     jar: CookieJar,
-    Extension(_role): Extension<UserRole>,
+    // Extension(role): Extension<UserRole>,
 ) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
     
-    // match _role {
+    // match role {
     //     UserRole::Even(_) => println!("Logout for even User"),
     //     UserRole::Odd(_) => println!("Logout for odd User"),
     // }

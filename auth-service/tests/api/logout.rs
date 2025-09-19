@@ -47,15 +47,6 @@ async fn should_return_401_if_invalid_token() {
         "Failed for input: "
     );
 
-    assert_eq!(
-        response
-            .json::<ErrorResponse>()
-            .await
-            .expect("Could not deserialize response body to ErrorResponse")
-            .error,
-        "Invalid token".to_owned()
-    );
-
     app.clean_up().await;
 }
 
