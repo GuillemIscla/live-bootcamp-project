@@ -72,8 +72,8 @@ impl Application {
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
             .route("/refresh-token", post(routes::refresh_token))
-            .with_state(app_state.clone())
-            .layer(middleware::from_fn_with_state(app_state, auth_middleware));
+            .with_state(app_state.clone());
+//            .layer(middleware::from_fn_with_state(app_state, auth_middleware));
             // .layer(cors);
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx
