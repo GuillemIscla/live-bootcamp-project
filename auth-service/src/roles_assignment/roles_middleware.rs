@@ -1,7 +1,5 @@
 use axum::{
-    extract::{Request, State},
-    middleware::Next,
-    response::Response,
+    extract::{Request, State}, http::StatusCode, middleware::Next, response::Response
 };
 use axum_extra::{
     TypedHeader,
@@ -9,7 +7,7 @@ use axum_extra::{
     headers::{Authorization, authorization::Bearer},
 };
 
-use crate::{api::app_state::AppState, config, service};
+use crate::{app_state::AppState, roles_assignment::roles_service, routes::VerifyTokenSummary, utils::auth};
 
 pub async fn auth_middleware(
     State(state): State<AppState>,
@@ -17,32 +15,38 @@ pub async fn auth_middleware(
     jar: CookieJar,
     mut req: Request,
     next: Next,
-) -> Response {
+) -> Result<Response, StatusCode>  {
     // Get auth token from authorization header or cookie
     let auth_token = authorization_header
         .map(|header| header.0.token().to_owned())
         .or_else(|| {
-            jar.get(config::AUTH_TOKEN_COOKIE_NAME)
+            jar.get(&state.auth_settings.http.jwt_cookie_name)
                 .map(|cookie| cookie.value().to_owned())
         });
 
     let auth_token = match auth_token {
         Some(token) => token,
-        None => return next.run(req).await,
+        None => return Ok(next.run(req).await),
     };
 
     // Validate auth token
-    let claims = service::auth::validate_auth_token(
-        &state.config.auth,
-        &*state.banned_token_store.read().await,
+    let (claims, token) = auth::validate_token(
+        state.banned_token_store.clone(),
         &auth_token,
-        config::APP_NAME,
+        state.auth_settings.http.jwt_token
     )
     .await
-    .map(|claims| (claims, auth_token));
+    .map_err( |jwt_error| match VerifyTokenSummary::new(Err(jwt_error)) {
+        VerifyTokenSummary::Valid => StatusCode::OK,
+        VerifyTokenSummary::Invalid => StatusCode::UNAUTHORIZED,
+        VerifyTokenSummary::UnprocessableContent => StatusCode::UNPROCESSABLE_ENTITY,
+        VerifyTokenSummary::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR,
+    })
+    .map(|claims| (claims, auth_token))?;
 
-    // Make claims available to handlers
-    req.extensions_mut().insert(claims);
+    let role = roles_service::get_role(claims, token).await;
+    // Make role available to handlers
+    req.extensions_mut().insert(role);
 
-    next.run(req).await
+    Ok(next.run(req).await)
 }

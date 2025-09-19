@@ -1,10 +1,6 @@
 use anyhow::Result;
 use axum::{
-    http::StatusCode,
-    Json, Router,
-    response::{IntoResponse, Response},
-    routing::{delete, post},
-    serve::Serve,
+    http::StatusCode, middleware, response::{IntoResponse, Response}, routing::{delete, post}, serve::Serve, Json, Router
 };
 use domain::AuthAPIError;
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -17,14 +13,14 @@ use redis::{Client, RedisResult};
 use crate::{
     app_state::AppState, 
     auth::auth_grpc_service_server::AuthGrpcServiceServer,
-    presentation::grpc_auth_service_impl::AuthGrpcServiceImpl
+    presentation::grpc_auth_service_impl::AuthGrpcServiceImpl, roles_assignment::roles_middleware::auth_middleware
 }; 
 
 pub mod app_state;
 pub mod domain;
 pub mod presentation;
 pub mod routes;
-// pub mod roles_assignment;
+pub mod roles_assignment;
 pub mod services;
 pub mod utils;
 
@@ -34,7 +30,7 @@ pub mod auth {
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
-    server: Serve<Router, Router>,
+    server: Serve<tokio::net::TcpListener, Router, Router>,
     // address is exposed as a public field
     // so we have access to it in tests.
     pub address: String,
@@ -68,7 +64,7 @@ impl Application {
 
         //Http router
         let router_internal = Router::new()
-            .nest_service("/", ServeDir::new("assets"))
+            .fallback_service(ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
             .route("/login", post(routes::login))
             .route("/logout", post(routes::logout))
@@ -76,7 +72,8 @@ impl Application {
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
             .route("/refresh-token", post(routes::refresh_token))
-            .with_state(app_state);
+            .with_state(app_state.clone())
+            .layer(middleware::from_fn_with_state(app_state, auth_middleware));
             // .layer(cors);
 
         let router = Router::new().nest("/auth", router_internal); // <- prepend /auth here for nginx

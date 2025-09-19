@@ -15,6 +15,17 @@ pub enum VerifyTokenSummary {
     UnexpectedError,
 }
 
+impl std::fmt::Display for VerifyTokenSummary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VerifyTokenSummary::Valid => write!(f, "Valid"),
+            VerifyTokenSummary::Invalid => write!(f, "Invalid"),
+            VerifyTokenSummary::UnprocessableContent => write!(f, "UnprocessableContent"),
+            VerifyTokenSummary::UnexpectedError => write!(f, "UnexpectedError"),
+        }
+    }
+}
+
 impl VerifyTokenSummary {
     pub fn new(validation: Result<Claims, jsonwebtoken::errors::Error>)-> VerifyTokenSummary {
         match validation {

@@ -94,7 +94,7 @@ fn create_token(claims: &Claims, jwt_secret: String) -> Result<String, jsonwebto
     )
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
@@ -159,8 +159,6 @@ mod tests {
             .checked_add_signed(chrono::Duration::try_milliseconds(token_ttl_millis - 60 * 1000).expect("valid duration"))
             .expect("valid timestamp")
             .timestamp();
-
-        println!("result.exp {}, exp {}", result.exp, exp);
 
         assert!(result.exp > exp as usize);
     }

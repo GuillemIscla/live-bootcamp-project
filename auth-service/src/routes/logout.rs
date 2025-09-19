@@ -1,11 +1,21 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse};
+use axum::{extract::{State, Extension}, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::CookieJar;
 
 use crate::{
-    app_state::AppState, domain::AuthAPIError, utils::{auth::{generate_auth_cookie_empty, validate_token}, HttpSettings}
+    app_state::AppState, domain::AuthAPIError, roles_assignment::UserRole, utils::{auth::{generate_auth_cookie_empty, validate_token}, HttpSettings}
 };
 
-pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
+pub async fn logout(
+    State(state): State<AppState>, 
+    jar: CookieJar,
+    Extension(_role): Extension<UserRole>,
+) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
+    
+    // match _role {
+    //     UserRole::Even(_) => println!("Logout for even User"),
+    //     UserRole::Odd(_) => println!("Logout for odd User"),
+    // }
+
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
     let cookie = jar.get(&jwt_cookie_name).ok_or(AuthAPIError::MissingToken)?;
 
