@@ -12,7 +12,8 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
-    init_tracing();
+    color_eyre::install().expect("Failed to install color_eyre");
+    init_tracing().expect("Failed to initialize tracing");
     let auth_settings = AuthSettings::new();
     let redis_connection = Arc::new(RwLock::new(configure_redis(auth_settings.redis.host_name.clone())));
     let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(Arc::clone(&redis_connection), auth_settings.redis.ttl_millis)));

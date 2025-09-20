@@ -1,5 +1,5 @@
 use std::sync::Arc;
-
+use color_eyre::eyre::Report;
 use auth_service::{domain::{data_stores::user_store::{UserStoreError}, email::Email, User}, routes::SignupResponse, ErrorResponse};
 use auth_service::domain::data_stores::user_store::MockUserStore;
 use tokio::sync::RwLock;
@@ -201,13 +201,13 @@ async fn should_return_500_if_store_has_unexpected_error() {
         .expect_add_user()
         .withf(move |u: &User| u.email == email_no_connections)
         .once()
-        .returning(|_| Err(UserStoreError::NoConnections));
+        .returning(|_| Err(UserStoreError::UnexpectedError(Report::msg("Mock error for exepect add"))));
 
     mock_user_store
         .expect_add_user()
         .withf(move |u: &User| u.email == email_query_error)
         .once()
-        .returning(|_| Err(UserStoreError::QueryError));
+        .returning(|_| Err(UserStoreError::UnexpectedError(Report::msg("Mock error for exepect add"))));
 
 
     let mut app = TestApp::new(Some(Arc::new(RwLock::new(mock_user_store)))).await;

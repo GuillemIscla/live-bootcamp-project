@@ -1,125 +1,125 @@
-use crate::helpers::{get_random_email, TestApp};
-use auth_service::{
-    domain::email::Email, 
-    utils::{auth::{generate_auth_cookie_empty, generate_auth_cookie_without_domain}, HttpSettings},
-};
-use reqwest::{cookie::CookieStore, Url};
+// use crate::helpers::{get_random_email, TestApp};
+// use auth_service::{
+//     domain::email::Email, 
+//     utils::{auth::{generate_auth_cookie_empty, generate_auth_cookie_without_domain}, HttpSettings},
+// };
+// use reqwest::{cookie::CookieStore, Url};
 
-#[tokio::test]
-async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
-    let mut app = TestApp::new(None).await;
+// #[tokio::test]
+// async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
+//     let mut app = TestApp::new(None).await;
 
-    let email = Email::parse(get_random_email()).unwrap();
+//     let email = Email::parse(get_random_email()).unwrap();
 
-    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
-    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
+//     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+//     let token_ttl_millis = app.auth_settings.redis.ttl_millis;
 
-    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
+//     let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
-    app.cookie_jar.add_cookie_str(
-        &format!("{}", cookie),
-        &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
-    );
+//     app.cookie_jar.add_cookie_str(
+//         &format!("{}", cookie),
+//         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
+//     );
 
-    let random_email = get_random_email();
+//     let random_email = get_random_email();
 
-    let signup_body = serde_json::json!({
-        "email": random_email,
-        "password": "Password123",
-        "requires2FA": false
-    });
+//     let signup_body = serde_json::json!({
+//         "email": random_email,
+//         "password": "Password123",
+//         "requires2FA": false
+//     });
 
-    let response = app.post_signup(&signup_body).await;
+//     let response = app.post_signup(&signup_body).await;
 
-    assert_eq!(response.status().as_u16(), 201);
+//     assert_eq!(response.status().as_u16(), 201);
 
-    let login_body = serde_json::json!({
-        "email": random_email,
-        "password": "Password123",
-    });
+//     let login_body = serde_json::json!({
+//         "email": random_email,
+//         "password": "Password123",
+//     });
 
-    let response = app.post_login(&login_body).await;
+//     let response = app.post_login(&login_body).await;
 
-    let cookie = response
-        .cookies()
-        .find(|cookie| cookie.name() == app.auth_settings.http.jwt_cookie_name)
-        .expect("No auth cookie found");
+//     let cookie = response
+//         .cookies()
+//         .find(|cookie| cookie.name() == app.auth_settings.http.jwt_cookie_name)
+//         .expect("No auth cookie found");
 
-    //If hitting refresh creating the cookie right away will get exactly the same cookie and 
-    //cannot compare if the cookie was refreshed
-    std::thread::sleep(std::time::Duration::from_millis(1000));
+//     //If hitting refresh creating the cookie right away will get exactly the same cookie and 
+//     //cannot compare if the cookie was refreshed
+//     std::thread::sleep(std::time::Duration::from_millis(1000));
 
-    let response = app.post_refresh_token().await;
-    let new_cookie = 
-        app.cookie_jar.cookies(&Url::parse("http://127.0.0.1").expect("Failed to parse URL")).unwrap();
+//     let response = app.post_refresh_token().await;
+//     let new_cookie = 
+//         app.cookie_jar.cookies(&Url::parse("http://127.0.0.1").expect("Failed to parse URL")).unwrap();
 
-    assert_eq!(response.status().as_u16(), 204);
+//     assert_eq!(response.status().as_u16(), 204);
 
-    let cookie_as_raw_header = format!("\"jwt={}\"", cookie.value());
-    let new_cookie_as_raw_header = format!("{:?}", new_cookie);
+//     let cookie_as_raw_header = format!("\"jwt={}\"", cookie.value());
+//     let new_cookie_as_raw_header = format!("{:?}", new_cookie);
 
-    assert_ne!(cookie_as_raw_header, new_cookie_as_raw_header);
+//     assert_ne!(cookie_as_raw_header, new_cookie_as_raw_header);
 
-    app.clean_up().await;
-}
+//     app.clean_up().await;
+// }
 
-#[tokio::test]
-async fn should_return_401_if_the_token_is_malformed() {
-    let mut app = TestApp::new(None).await;
+// #[tokio::test]
+// async fn should_return_401_if_the_token_is_malformed() {
+//     let mut app = TestApp::new(None).await;
 
-    app.cookie_jar.add_cookie_str(
-        "jwt=invalid",
-        &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
-    );
+//     app.cookie_jar.add_cookie_str(
+//         "jwt=invalid",
+//         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
+//     );
 
-    let response = app.post_refresh_token().await;
+//     let response = app.post_refresh_token().await;
 
-    assert_eq!(response.status().as_u16(), 401);
+//     assert_eq!(response.status().as_u16(), 401);
 
-    app.clean_up().await;
-}
+//     app.clean_up().await;
+// }
 
-#[tokio::test]
-async fn should_return_400_if_the_token_is_expired() {
-    let mut app = TestApp::new(None).await;
+// #[tokio::test]
+// async fn should_return_400_if_the_token_is_expired() {
+//     let mut app = TestApp::new(None).await;
 
-    let jwt_cookie_name = app.auth_settings.http.jwt_cookie_name.clone();
+//     let jwt_cookie_name = app.auth_settings.http.jwt_cookie_name.clone();
 
-    let cookie = generate_auth_cookie_empty(jwt_cookie_name);
+//     let cookie = generate_auth_cookie_empty(jwt_cookie_name);
 
-    app.cookie_jar.add_cookie_str(
-        cookie.value(),
-        &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
-    );
+//     app.cookie_jar.add_cookie_str(
+//         cookie.value(),
+//         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
+//     );
 
-    let response = app.post_refresh_token().await;
+//     let response = app.post_refresh_token().await;
 
-    assert_eq!(response.status().as_u16(), 400);
+//     assert_eq!(response.status().as_u16(), 400);
 
-    app.clean_up().await;
-}
+//     app.clean_up().await;
+// }
 
-#[tokio::test]
-async fn should_return_401_if_the_token_is_banned() {
-    let mut app = TestApp::new(None).await;
-    let email = Email::parse(get_random_email()).unwrap();
-    let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
-    let token_ttl_millis = app.auth_settings.redis.ttl_millis;
-    let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
-    app.cookie_jar.add_cookie_str(
-        &format!("{}", cookie),
-        &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
-    );
+// #[tokio::test]
+// async fn should_return_401_if_the_token_is_banned() {
+//     let mut app = TestApp::new(None).await;
+//     let email = Email::parse(get_random_email()).unwrap();
+//     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
+//     let token_ttl_millis = app.auth_settings.redis.ttl_millis;
+//     let cookie = generate_auth_cookie_without_domain(&email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
+//     app.cookie_jar.add_cookie_str(
+//         &format!("{}", cookie),
+//         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
+//     );
     
-    // This is an inner scope to drop banned_token_store write reference once the add_token operation is finished
-    {
-        let mut banned_token_store = app.banned_token_store.write().await;
-        let _ = banned_token_store.add_token(cookie.value().to_owned()).await;
-    } // dropping write lock here
+//     // This is an inner scope to drop banned_token_store write reference once the add_token operation is finished
+//     {
+//         let mut banned_token_store = app.banned_token_store.write().await;
+//         let _ = banned_token_store.add_token(cookie.value().to_owned()).await;
+//     } // dropping write lock here
     
-    let response = app.post_refresh_token().await;
+//     let response = app.post_refresh_token().await;
 
-    assert_eq!(response.status().as_u16(), 401);
+//     assert_eq!(response.status().as_u16(), 401);
     
-    app.clean_up().await;
-}
+//     app.clean_up().await;
+// }

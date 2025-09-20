@@ -1,10 +1,8 @@
-use std::error::Error;
-
 use argon2::{
     password_hash::SaltString, Algorithm, Argon2, Params, PasswordHash, PasswordHasher,
     PasswordVerifier, Version,
 };
-
+use color_eyre::eyre::{eyre, Context, Result};
 use sqlx::PgPool;
 
 use crate::domain::{
@@ -29,14 +27,14 @@ impl UserStore for PostgresUserStore {
         let password_hash = 
             compute_password_hash(user.password.as_ref())
             .await
-            .map_err(|_| UserStoreError::UnexpectedError)?;
+            .map_err(UserStoreError::UnexpectedError)?;
         sqlx::query("INSERT INTO users (email, password_hash, requires_2fa) VALUES ($1, $2, $3)")
         .bind(user.email.as_ref())
         .bind(&password_hash)
         .bind(user.requires_2fa)
         .execute(&self.pool)
         .await
-        .map_err(|_| UserStoreError::QueryError)?;
+        .map_err(|e| UserStoreError::UnexpectedError(e.into()))?; 
 
         Ok(())
     }
@@ -49,22 +47,21 @@ impl UserStore for PostgresUserStore {
         .bind(email.as_ref())
         .execute(&self.pool)
         .await
-        .map_err(|_| UserStoreError::QueryError)?;
+        .map_err(|e| UserStoreError::UnexpectedError(e.into()))?;
 
         Ok(())
     }
 
     #[tracing::instrument(name = "Retrieving user from PostgreSQL", skip_all)] 
     async fn get_user(&self, email: &Email) -> Result<UserHashed, UserStoreError> {
-        let user: UserHashed = sqlx::query_as::<_, UserHashed>(
+        sqlx::query_as::<_, UserHashed>(
             "SELECT email, password_hash, requires_2fa FROM users WHERE email = $1"
         )
         .bind(email.as_ref())
-        .fetch_one(&self.pool)
+        .fetch_optional(&self.pool)
         .await
-        .map_err(|_| UserStoreError::QueryError)?;
-
-        Ok(user)
+        .map_err(|e| UserStoreError::UnexpectedError(e.into()))?
+        .ok_or(UserStoreError::UserNotFound)
     }
 
     #[tracing::instrument(name = "Validating user credentials in PostgreSQL", skip_all)] 
@@ -85,7 +82,7 @@ impl UserStore for PostgresUserStore {
 async fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let expected_password_hash = expected_password_hash.to_string();
     let password_candidate = password_candidate.to_string();
 
@@ -102,10 +99,10 @@ async fn verify_password_hash(
 }
 
 #[tracing::instrument(name = "Computing password hash", skip_all)] 
-async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+async fn compute_password_hash(password: &str) -> Result<String> {
     let password = password.to_string();
     let password_hash =  
-        tokio::task::spawn_blocking(move || -> Result<String, Box<dyn Error + Send + Sync>> {
+        tokio::task::spawn_blocking(move || -> Result<String> {
             let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
             let argon2 = Argon2::new(
                 Algorithm::Argon2id,

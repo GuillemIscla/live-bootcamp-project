@@ -1,106 +1,106 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use axum_extra::extract::CookieJar;
-use serde::{Deserialize, Serialize};
+// use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+// use axum_extra::extract::CookieJar;
+// use serde::{Deserialize, Serialize};
 
-use crate::{
-    app_state::AppState, 
-    domain::{data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode}, email::Email, password::Password, AuthAPIError},
-    utils::{auth::generate_auth_cookie, HttpSettings},
-};
+// use crate::{
+//     app_state::AppState, 
+//     domain::{data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode}, email::Email, password::Password, AuthAPIError},
+//     utils::{auth::generate_auth_cookie, HttpSettings},
+// };
 
-pub async fn login(
-    State(state): State<AppState>, 
-    jar: CookieJar,
-    Json(request): Json<LoginRequest>
-) ->  Result<(CookieJar, impl IntoResponse), AuthAPIError> {
-    let email = Email::parse(request.email).map_err(|_| AuthAPIError::InvalidCredentials)?;
+// pub async fn login(
+//     State(state): State<AppState>, 
+//     jar: CookieJar,
+//     Json(request): Json<LoginRequest>
+// ) ->  Result<(CookieJar, impl IntoResponse), AuthAPIError> {
+//     let email = Email::parse(request.email).map_err(|_| AuthAPIError::InvalidCredentials)?;
 
-    let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
-    let user_store = &state.user_store.read().await;
+//     let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
+//     let user_store = &state.user_store.read().await;
 
-    user_store.validate_user(&email, &password).await.map_err(|_| AuthAPIError::IncorrectCredentials)?;
+//     user_store.validate_user(&email, &password).await.map_err(|_| AuthAPIError::IncorrectCredentials)?;
 
-    let user = user_store.get_user(&email).await.map_err(|_| AuthAPIError::IncorrectCredentials)?;
+//     let user = user_store.get_user(&email).await.map_err(|_| AuthAPIError::IncorrectCredentials)?;
 
-    match user.requires_2fa {
-        true => handle_2fa(&user.email, &state, jar).await,
-        false => {
-            let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
-            let token_ttl_millis = state.auth_settings.redis.ttl_millis;
-            handle_no_2fa(&user.email, jar, jwt_token, jwt_cookie_name, token_ttl_millis).await
-        },
-    }
+//     match user.requires_2fa {
+//         true => handle_2fa(&user.email, &state, jar).await,
+//         false => {
+//             let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
+//             let token_ttl_millis = state.auth_settings.redis.ttl_millis;
+//             handle_no_2fa(&user.email, jar, jwt_token, jwt_cookie_name, token_ttl_millis).await
+//         },
+//     }
     
-}
+// }
 
-// New!
-async fn handle_2fa(
-    email: &Email,
-    state: &AppState, 
-    jar: CookieJar,
-) ->  Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
-    let login_attempt_id = LoginAttemptId::default();
-    let two_fa_code = TwoFACode::default();
+// // New!
+// async fn handle_2fa(
+//     email: &Email,
+//     state: &AppState, 
+//     jar: CookieJar,
+// ) ->  Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
+//     let login_attempt_id = LoginAttemptId::default();
+//     let two_fa_code = TwoFACode::default();
 
-    let _ = state.two_fa_code_store
-                .write()
-                .await
-                .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
-                .await
-                .map_err(|_| AuthAPIError::UnexpectedError)?;
+//     let _ = state.two_fa_code_store
+//                 .write()
+//                 .await
+//                 .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
+//                 .await
+//                 .map_err(|_| AuthAPIError::UnexpectedError)?;
 
-    let _ = state.email_client
-                .read()
-                .await
-                .send_email(email, "Verify code for login", two_fa_code.as_ref())
-                .await
-                .map_err(|_| AuthAPIError::UnexpectedError);
+//     let _ = state.email_client
+//                 .read()
+//                 .await
+//                 .send_email(email, "Verify code for login", two_fa_code.as_ref())
+//                 .await
+//                 .map_err(|_| AuthAPIError::UnexpectedError);
 
-    let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
-        message: "2FA required".to_owned(),
-        login_attempt_id: login_attempt_id.as_ref().to_string(), 
-    }));
+//     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
+//         message: "2FA required".to_owned(),
+//         login_attempt_id: login_attempt_id.as_ref().to_string(), 
+//     }));
 
-    Ok((jar, (StatusCode::PARTIAL_CONTENT, response)))
-}
+//     Ok((jar, (StatusCode::PARTIAL_CONTENT, response)))
+// }
 
-// New!
-async fn handle_no_2fa(
-    email: &Email,
-    jar: CookieJar,
-    jwt_secret:String,
-    jwt_cookie_name:String,
-    token_ttl_millis: i64
-) -> Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
-    let auth_cookie = generate_auth_cookie(&email, jwt_secret, jwt_cookie_name, token_ttl_millis).map_err(|_| AuthAPIError::UnexpectedError)?;
+// // New!
+// async fn handle_no_2fa(
+//     email: &Email,
+//     jar: CookieJar,
+//     jwt_secret:String,
+//     jwt_cookie_name:String,
+//     token_ttl_millis: i64
+// ) -> Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
+//     let auth_cookie = generate_auth_cookie(&email, jwt_secret, jwt_cookie_name, token_ttl_millis).map_err(|_| AuthAPIError::UnexpectedError)?;
 
-    let updated_jar = jar.add(auth_cookie);
+//     let updated_jar = jar.add(auth_cookie);
 
-    let json_body = Json(LoginResponse::RegularAuth);
+//     let json_body = Json(LoginResponse::RegularAuth);
 
-    Ok((updated_jar, (StatusCode::OK, json_body)))
-}
+//     Ok((updated_jar, (StatusCode::OK, json_body)))
+// }
 
 
-#[derive(Deserialize)]
-pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
-}
+// #[derive(Deserialize)]
+// pub struct LoginRequest {
+//     pub email: String,
+//     pub password: String,
+// }
 
-// The login route can return 2 possible success responses.
-// This enum models each response!
-#[derive(Debug, Serialize)]
-#[serde(untagged)]
-pub enum LoginResponse {
-    RegularAuth,
-    TwoFactorAuth(TwoFactorAuthResponse),
-}
+// // The login route can return 2 possible success responses.
+// // This enum models each response!
+// #[derive(Debug, Serialize)]
+// #[serde(untagged)]
+// pub enum LoginResponse {
+//     RegularAuth,
+//     TwoFactorAuth(TwoFactorAuthResponse),
+// }
 
-// If a user requires 2FA, this JSON body should be returned!
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TwoFactorAuthResponse {
-    pub message: String,
-    #[serde(rename = "loginAttemptId")]
-    pub login_attempt_id: String,
-}
+// // If a user requires 2FA, this JSON body should be returned!
+// #[derive(Debug, Serialize, Deserialize)]
+// pub struct TwoFactorAuthResponse {
+//     pub message: String,
+//     #[serde(rename = "loginAttemptId")]
+//     pub login_attempt_id: String,
+// }
