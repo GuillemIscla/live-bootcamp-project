@@ -24,6 +24,7 @@ impl PostgresUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
+    #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)] 
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         let password_hash = 
             compute_password_hash(user.password.as_ref())
@@ -40,6 +41,7 @@ impl UserStore for PostgresUserStore {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Delete user from PostgreSQL", skip_all)]
     async fn delete_user(&mut self, email: &Email) -> Result<(), UserStoreError>{
         sqlx::query(
             "DELETE FROM users where email = $1"
@@ -52,7 +54,7 @@ impl UserStore for PostgresUserStore {
         Ok(())
     }
 
-
+    #[tracing::instrument(name = "Retrieving user from PostgreSQL", skip_all)] 
     async fn get_user(&self, email: &Email) -> Result<UserHashed, UserStoreError> {
         let user: UserHashed = sqlx::query_as::<_, UserHashed>(
             "SELECT email, password_hash, requires_2fa FROM users WHERE email = $1"
@@ -65,7 +67,7 @@ impl UserStore for PostgresUserStore {
         Ok(user)
     }
 
-
+    #[tracing::instrument(name = "Validating user credentials in PostgreSQL", skip_all)] 
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError>{
         match self.get_user(email).await {
             Ok(user) => {
@@ -79,7 +81,7 @@ impl UserStore for PostgresUserStore {
 
 }
 
-// Helper function to verify if a given password matches an expected hash
+#[tracing::instrument(name = "Verify password hash", skip_all)]
 async fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
@@ -99,7 +101,7 @@ async fn verify_password_hash(
     Ok(())
 }
 
-// Helper function to hash passwords before persisting them in the database.
+#[tracing::instrument(name = "Computing password hash", skip_all)] 
 async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
     let password = password.to_string();
     let password_hash =  

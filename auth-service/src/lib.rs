@@ -1,6 +1,12 @@
 use anyhow::Result;
 use axum::{
-    http::StatusCode, middleware, response::{IntoResponse, Response}, routing::{delete, post}, serve::Serve, Json, Router
+    http::StatusCode, 
+    // middleware, 
+    response::{IntoResponse, Response}, 
+    routing::{delete, post}, 
+    serve::Serve, 
+    Json, 
+    Router
 };
 use domain::AuthAPIError;
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -13,8 +19,11 @@ use redis::{Client, RedisResult};
 use crate::{
     app_state::AppState, 
     auth::auth_grpc_service_server::AuthGrpcServiceServer,
-    presentation::grpc_auth_service_impl::AuthGrpcServiceImpl, roles_assignment::roles_middleware::auth_middleware
+    presentation::grpc_auth_service_impl::AuthGrpcServiceImpl, 
+    // roles_assignment::roles_middleware::auth_middleware
 }; 
+use tower_http::trace::TraceLayer;
+use utils::tracing::{make_span_with_request_id, on_request, on_response};
 
 pub mod app_state;
 pub mod domain;
@@ -72,7 +81,13 @@ impl Application {
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
             .route("/refresh-token", post(routes::refresh_token))
-            .with_state(app_state.clone());
+            .with_state(app_state.clone())
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(make_span_with_request_id)
+                    .on_request(on_request)
+                    .on_response(on_response),
+            );
 //            .layer(middleware::from_fn_with_state(app_state, auth_middleware));
             // .layer(cors);
 
@@ -86,8 +101,8 @@ impl Application {
     }
 
     pub async fn run(self, tx_ready: Option<oneshot::Sender<()>>) -> Result<()> {
-        println!("🚀 gRPC listening on {}", self.grpc_address);
-        println!("🌍 HTTP listening on {}", self.address);
+        tracing::info!("🚀 gRPC listening on {}", self.grpc_address);
+        tracing::info!("🌍 HTTP listening on {}", self.address);
 
         //At this point the port is already bound
         if let Some(tx) = tx_ready {
