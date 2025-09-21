@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use secrecy::{ExposeSecret, Secret};
 use color_eyre::eyre::Context;
 use redis::{Commands, Connection};
 use serde::{Deserialize, Serialize};
@@ -71,15 +72,17 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
     }
 }
 
+
+//Class to manipulate the output of the class, contains sensible information, not to log!
 #[derive(Serialize, Deserialize)]
 struct TwoFATuple(pub String, pub String);
 
 impl TwoFATuple {
     pub fn new(login_attempt_id:LoginAttemptId, code: TwoFACode) -> Self  {
-        TwoFATuple(login_attempt_id.0, code.0)
+        TwoFATuple(login_attempt_id.0.expose_secret().to_owned(), code.0.expose_secret().to_owned())
     }
     pub fn split(&self) -> (LoginAttemptId, TwoFACode) {
-        (LoginAttemptId(self.0.clone()), TwoFACode(self.1.clone()))
+        (LoginAttemptId(Secret::new(self.0.to_owned())), TwoFACode(Secret::new(self.1.clone())))
     }
 }
 
@@ -87,5 +90,5 @@ const TEN_MINUTES_IN_SECONDS: u64 = 600;
 const TWO_FA_CODE_PREFIX: &str = "two_fa_code:";
 
 fn get_key(email: &Email) -> String {
-    format!("{}{}", TWO_FA_CODE_PREFIX, email.as_ref())
+    format!("{}{}", TWO_FA_CODE_PREFIX, email.as_ref().expose_secret())
 }

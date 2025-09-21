@@ -1,6 +1,7 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::CookieJar;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use secrecy::{ExposeSecret, Secret};
 use crate::{
     app_state::AppState, 
     domain::{email::Email, AuthAPIError}, 
@@ -15,7 +16,7 @@ pub async fn refresh_token(State(state): State<AppState>, jar: CookieJar) -> Res
     let old_cookie = jar.get(&jwt_cookie_name).ok_or(AuthAPIError::MissingToken)?;
 
 
-    let _ = match VerifyTokenSummary::new(validate_token(state.banned_token_store, old_cookie.value(), jwt_token.clone()).await) {
+    let _ = match VerifyTokenSummary::new(validate_token(state.banned_token_store, &Secret::new(old_cookie.value().to_string()), jwt_token.clone()).await) {
         VerifyTokenSummary::Valid => Ok(()),
         VerifyTokenSummary::Invalid => Err(AuthAPIError::InvalidToken),
     }?;
@@ -23,12 +24,12 @@ pub async fn refresh_token(State(state): State<AppState>, jar: CookieJar) -> Res
     let email_raw =             
             decode::<Claims>(
                 &old_cookie.value().to_string(),
-                &DecodingKey::from_secret(&jwt_token.as_bytes()),
+                &DecodingKey::from_secret(&jwt_token.expose_secret().as_bytes()),
                 &Validation::new(Algorithm::HS256))
             .map_err(|e| AuthAPIError::UnexpectedError(e.into()))?
             .claims
             .sub;
-    let email = Email::parse(email_raw).map_err(|_| AuthAPIError::InvalidToken)?;
+    let email = Email::parse(Secret::new(email_raw)).map_err(|_| AuthAPIError::InvalidToken)?;
     let token_ttl_millis = state.auth_settings.redis.ttl_millis;
 
     let new_cookie = 

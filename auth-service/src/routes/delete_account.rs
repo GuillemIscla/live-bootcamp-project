@@ -1,4 +1,5 @@
 use axum::{extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, Json};
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 use crate::{
     app_state::AppState,
@@ -16,7 +17,7 @@ pub async fn delete_account(State(state): State<AppState>, headers: HeaderMap, J
         //}
     };
 
-    let email = match Email::parse(request.email) {
+    let email = match Email::parse(Secret::new(request.email)) {
         Ok(email) => email,
         _ => return Err(AuthAPIError::InvalidCredentials),
     };

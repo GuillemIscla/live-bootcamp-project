@@ -2,6 +2,7 @@ use std::sync::Arc;
 use color_eyre::eyre::Context;
 
 use redis::{Commands, Connection};
+use secrecy::{ExposeSecret, Secret};
 use tokio::sync::RwLock;
 
 use crate::domain::data_stores::{BannedTokenStore, BannedTokenStoreError};
@@ -20,7 +21,7 @@ impl RedisBannedTokenStore {
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
     #[tracing::instrument(name = "AddToken", skip_all)]
-    async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
+    async fn add_token(&mut self, token: Secret<String>) -> Result<(), BannedTokenStoreError> {
         let key = get_key(&token);
         let mut connection: tokio::sync::RwLockWriteGuard<'_, Connection> = self.conn.write().await;
         let ttl_seconds: u64 = 
@@ -36,7 +37,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
     }
 
     #[tracing::instrument(name = "ContainsToken", skip_all)]
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
+    async fn contains_token(&self, token: &Secret<String>) -> Result<bool, BannedTokenStoreError> {
         let key = get_key(&token);
         let mut connection = self.conn.write().await;
         
@@ -50,6 +51,6 @@ impl BannedTokenStore for RedisBannedTokenStore {
 // We are using a key prefix to prevent collisions and organize data!
 const BANNED_TOKEN_KEY_PREFIX: &str = "banned_token:";
 
-fn get_key(token: &str) -> String {
-    format!("{}{}", BANNED_TOKEN_KEY_PREFIX, token)
+fn get_key(token: &Secret<String>) -> String {
+    format!("{}{}", BANNED_TOKEN_KEY_PREFIX, token.expose_secret())
 }

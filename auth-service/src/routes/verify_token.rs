@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use color_eyre::eyre::Result;
+use secrecy::Secret;
 use serde::Deserialize;
 
 use crate::{
@@ -41,7 +42,7 @@ pub async fn verify_token_html(State(state): State<AppState>, Json(request): Jso
 }
 
 #[tracing::instrument(name = "VerifyTokenGrpc", skip_all)]
-pub async fn verify_token_grpc(banned_token_store: BannedTokenStoreType, token:String, jwt_token: String) -> VerifyTokenStatus {
+pub async fn verify_token_grpc(banned_token_store: BannedTokenStoreType, token:Secret<String>, jwt_token: Secret<String>) -> VerifyTokenStatus {
     match VerifyTokenSummary::new(validate_token(banned_token_store, &token, jwt_token).await) {
         VerifyTokenSummary::Valid => VerifyTokenStatus::Valid,
         VerifyTokenSummary::Invalid => VerifyTokenStatus::Invalid,
@@ -50,5 +51,5 @@ pub async fn verify_token_grpc(banned_token_store: BannedTokenStoreType, token:S
 
 #[derive(Deserialize)]
 pub struct VerifyTokenRequest {
-    pub token: String,
+    pub token: Secret<String>,
 }

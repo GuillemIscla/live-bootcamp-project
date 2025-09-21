@@ -2,6 +2,7 @@ use std::sync::Arc;
 use color_eyre::eyre::Report;
 use auth_service::{domain::{data_stores::user_store::{UserStoreError}, email::Email, User}, routes::SignupResponse, ErrorResponse};
 use auth_service::domain::data_stores::user_store::MockUserStore;
+use secrecy::{ExposeSecret, Secret};
 use tokio::sync::RwLock;
 
 use crate::helpers::{get_random_email, TestApp};
@@ -10,7 +11,7 @@ use crate::helpers::{get_random_email, TestApp};
 async fn should_return_422_if_malformed_input() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email(); // Call helper method to generate email
+    let random_email = get_random_email().expose_secret().to_owned(); // Call helper method to generate email
 
     let test_cases = [
         serde_json::json!({
@@ -50,7 +51,7 @@ async fn should_return_422_if_malformed_input() {
 async fn should_return_201_if_valid_input() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let test_case = serde_json::json!({
         "email": random_email,
@@ -87,7 +88,7 @@ async fn should_return_400_if_invalid_input() {
     let bad_email_1 = "";
     let bad_email_2 = "user_name_a_domain";
     let short_password = "short!";
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let test_cases = [
         serde_json::json!({
@@ -134,7 +135,7 @@ async fn should_return_409_if_email_already_exists() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code    
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let sign_up_request = serde_json::json!({
             "email": random_email,
@@ -171,9 +172,9 @@ async fn should_return_409_if_email_already_exists() {
 #[tokio::test]
 async fn should_return_500_if_store_has_unexpected_error() {
     let email_no_connections_raw = "dont_have_connections@domain.com";
-    let email_no_connections = Email::parse(email_no_connections_raw.to_owned()).unwrap();
+    let email_no_connections = Email::parse(Secret::new(email_no_connections_raw.to_owned())).unwrap();
     let email_query_error_raw = "query_error@domain.com";
-    let email_query_error = Email::parse(email_query_error_raw.to_owned()).unwrap();
+    let email_query_error = Email::parse(Secret::new(email_query_error_raw.to_owned())).unwrap();
     let password = "Password123";
     let requires_2fa = true;
 

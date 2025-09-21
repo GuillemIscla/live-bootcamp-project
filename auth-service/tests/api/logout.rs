@@ -1,4 +1,5 @@
 use auth_service::{domain::email::Email, utils::{auth::generate_auth_cookie_without_domain, HttpSettings}, ErrorResponse};
+use secrecy::Secret;
 use crate::helpers::{get_random_email, TestApp};
 use reqwest::Url;
 
@@ -54,7 +55,7 @@ async fn should_return_401_if_invalid_token() {
 async fn should_return_200_if_valid_jwt_cookie() {
     let mut app = TestApp::new(None).await;
 
-    let email = Email::parse("user@domain.com".to_owned()).unwrap();
+    let email = Email::parse(Secret::new("user@domain.com".to_owned())).unwrap();
 
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = app.auth_settings.http.clone();
     let token_ttl_millis = app.auth_settings.redis.ttl_millis;
@@ -77,7 +78,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
     {
         let banned_token_store = app.banned_token_store.read().await;
         assert_eq!(
-            banned_token_store.contains_token(cookie.value()).await, 
+            banned_token_store.contains_token(&Secret::new(cookie.value().to_string())).await, 
             Ok(true), 
                 "Missing token from the store: {}", cookie.value()
         );

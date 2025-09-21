@@ -4,6 +4,7 @@ use auth_service::{
     utils::{auth::{generate_auth_cookie_empty, generate_auth_cookie_without_domain}, HttpSettings},
 };
 use reqwest::{cookie::CookieStore, Url};
+use secrecy::{ExposeSecret, Secret};
 
 #[tokio::test]
 async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
@@ -21,7 +22,7 @@ async fn should_return_204_if_the_token_is_valid_and_get_a_new_token() {
         &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
     );
 
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let signup_body = serde_json::json!({
         "email": random_email,
@@ -114,7 +115,7 @@ async fn should_return_401_if_the_token_is_banned() {
     // This is an inner scope to drop banned_token_store write reference once the add_token operation is finished
     {
         let mut banned_token_store = app.banned_token_store.write().await;
-        let _ = banned_token_store.add_token(cookie.value().to_owned()).await;
+        let _ = banned_token_store.add_token(Secret::new(cookie.value().to_owned())).await;
     } // dropping write lock here
     
     let response = app.post_refresh_token().await;

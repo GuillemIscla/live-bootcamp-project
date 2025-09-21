@@ -1,4 +1,5 @@
 use auth_service::{domain::{data_stores::two_fa_code_store::{LoginAttemptId, TwoFACode}, Email}};
+use secrecy::{ExposeSecret, Secret};
 use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
@@ -6,8 +7,8 @@ async fn should_return_200_if_correct_code() {
     let mut app = TestApp::new(None).await;
 
     let random_email = get_random_email();
-    let random_login_attempt = LoginAttemptId::default().as_ref().to_owned();
-    let random_two_fa_code = TwoFACode::default().as_ref().to_owned();
+    let random_login_attempt = LoginAttemptId::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let _ = app
                 .two_fa_code_store
@@ -15,12 +16,12 @@ async fn should_return_200_if_correct_code() {
                 .await
                 .add_code(
                     Email::parse(random_email.clone()).unwrap(), 
-                    LoginAttemptId::parse(random_login_attempt.clone()).unwrap(), 
-                    TwoFACode::parse(random_two_fa_code.clone()).unwrap()
+                    LoginAttemptId::parse(Secret::new(random_login_attempt.clone())).unwrap(), 
+                    TwoFACode::parse(Secret::new(random_two_fa_code.clone())).unwrap()
                 ).await;
 
     let test_case = serde_json::json!({
-            "email": random_email,
+            "email": random_email.expose_secret(),
             "loginAttemptId": random_login_attempt,
             "2FACode": random_two_fa_code
         });
@@ -47,7 +48,7 @@ async fn should_return_200_if_correct_code() {
 async fn should_return_422_if_malformed_input() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let test_cases = [
         serde_json::json!({
@@ -96,9 +97,9 @@ async fn should_return_422_if_malformed_input() {
 async fn should_return_400_if_invalid_input() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
-    let random_login_attempt_id = LoginAttemptId::default().as_ref().to_owned();
-    let random_two_fa_code = TwoFACode::default().as_ref().to_owned();
+    let random_email = get_random_email().expose_secret().to_owned();
+    let random_login_attempt_id = LoginAttemptId::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let test_cases = [
         serde_json::json!({
@@ -136,20 +137,20 @@ async fn should_return_400_if_invalid_input() {
 async fn should_return_401_if_incorrect_credentials() {
     let mut app = TestApp::new(None).await;
 
-    let random_email_not_in_store = get_random_email();
-    let random_email_in_store = get_random_email();
-    let random_login_attempt_id_in_store = LoginAttemptId::default().as_ref().to_owned();
-    let random_two_fa_code_in_store = TwoFACode::default().as_ref().to_owned();
-    let random_two_fa_code_not_in_store = TwoFACode::default().as_ref().to_owned();
+    let random_email_not_in_store = get_random_email().expose_secret().to_owned();
+    let random_email_in_store = get_random_email().expose_secret().to_owned();
+    let random_login_attempt_id_in_store = LoginAttemptId::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code_in_store = TwoFACode::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code_not_in_store = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let _ = app
                 .two_fa_code_store
                 .write()
                 .await
                 .add_code(
-                    Email::parse(random_email_in_store.clone()).unwrap(), 
-                    LoginAttemptId::parse(random_login_attempt_id_in_store.clone()).unwrap(), 
-                    TwoFACode::parse(random_two_fa_code_in_store.clone()).unwrap()
+                    Email::parse(Secret::new(random_email_in_store.clone())).unwrap(), 
+                    LoginAttemptId::parse(Secret::new(random_login_attempt_id_in_store.clone())).unwrap(), 
+                    TwoFACode::parse(Secret::new(random_two_fa_code_in_store.clone())).unwrap()
                 ).await;
 
     let test_cases = [
@@ -182,19 +183,19 @@ async fn should_return_401_if_incorrect_credentials() {
 async fn should_return_401_if_old_code() {
     let mut app = TestApp::new(None).await;
 
-    let random_email_in_store = get_random_email();
-    let random_login_attempt_id_in_store = LoginAttemptId::default().as_ref().to_owned();
-    let random_two_fa_code_in_store = TwoFACode::default().as_ref().to_owned();
-    let random_two_fa_code_not_in_store = TwoFACode::default().as_ref().to_owned();
+    let random_email_in_store = get_random_email().expose_secret().to_owned();
+    let random_login_attempt_id_in_store = LoginAttemptId::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code_in_store = TwoFACode::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code_not_in_store = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let _ = app
                 .two_fa_code_store
                 .write()
                 .await
                 .add_code(
-                    Email::parse(random_email_in_store.clone()).unwrap(), 
-                    LoginAttemptId::parse(random_login_attempt_id_in_store.clone()).unwrap(), 
-                    TwoFACode::parse(random_two_fa_code_in_store.clone()).unwrap()
+                    Email::parse(Secret::new(random_email_in_store.clone())).unwrap(), 
+                    LoginAttemptId::parse(Secret::new(random_login_attempt_id_in_store.clone())).unwrap(), 
+                    TwoFACode::parse(Secret::new(random_two_fa_code_in_store.clone())).unwrap()
                 );
 
     let test_cases = [
@@ -222,18 +223,18 @@ async fn should_return_401_if_old_code() {
 async fn should_return_401_if_same_code_twice() {    
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
-    let random_login_attempt = LoginAttemptId::default().as_ref().to_owned();
-    let random_two_fa_code = TwoFACode::default().as_ref().to_owned();
+    let random_email = get_random_email().expose_secret().to_owned();
+    let random_login_attempt = LoginAttemptId::default().as_ref().expose_secret().to_owned();
+    let random_two_fa_code = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let _ = app
                 .two_fa_code_store
                 .write()
                 .await
                 .add_code(
-                    Email::parse(random_email.clone()).unwrap(), 
-                    LoginAttemptId::parse(random_login_attempt.clone()).unwrap(), 
-                    TwoFACode::parse(random_two_fa_code.clone()).unwrap()
+                    Email::parse(Secret::new(random_email.clone())).unwrap(), 
+                    LoginAttemptId::parse(Secret::new(random_login_attempt.clone())).unwrap(), 
+                    TwoFACode::parse(Secret::new(random_two_fa_code.clone())).unwrap()
                 ).await;
 
     let test_case = serde_json::json!({

@@ -42,12 +42,14 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
 
 #[cfg(test)]
 mod tests {
+    use secrecy::Secret;
+
     use super::*;
 
     #[tokio::test]
     async fn test_add_code() {
         let mut two_fa_code_store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("guillem@letsgetrusty.com".to_owned())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
         let code = TwoFACode::default();
         assert!(two_fa_code_store.add_code(email, login_attempt_id, code).await.is_ok());
@@ -56,7 +58,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_existing_code() {
         let mut two_fa_code_store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("guillem@letsgetrusty.com".to_owned())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
         let code = TwoFACode::default();
         let _ = two_fa_code_store.add_code(email.clone(), login_attempt_id.clone(), code.clone()).await;
@@ -67,14 +69,14 @@ mod tests {
     #[tokio::test]
     async fn test_get_non_existing_code() {
         let two_fa_code_store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("guillem@letsgetrusty.com".to_owned())).unwrap();
         assert_eq!(two_fa_code_store.get_code(&email).await, Err(TwoFACodeStoreError::LoginAttemptIdNotFound))
     }
 
     #[tokio::test]
     async fn test_remove_code() {
         let mut two_fa_code_store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("guillem@letsgetrusty.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("guillem@letsgetrusty.com".to_owned())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
         let code = TwoFACode::default();
         let _ = two_fa_code_store.add_code(email.clone(), login_attempt_id, code).await;

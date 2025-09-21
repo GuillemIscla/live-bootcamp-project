@@ -1,17 +1,19 @@
 use color_eyre::eyre::{eyre, Result};
+use secrecy::{ExposeSecret, Secret};
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct Password {
-    value: String,
+#[derive(Debug, Clone)]
+pub struct Password(Secret<String>);
+
+impl PartialEq for Password { 
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
 }
 
 impl Password {
-    pub fn parse(raw_password:&str) -> Result<Password> {
-        if raw_password.len() >= 8 && 
-            raw_password.chars().any(|c| c.is_uppercase())&& 
-            raw_password.chars().any(|c| c.is_lowercase())
-        {
-            Ok(Password { value: raw_password.to_string() })
+    pub fn parse(s:Secret<String>) -> Result<Password> {
+        if  validate_password(&s) {
+            Ok(Self(s))
         }
         else {
             Err(eyre!("Password chosen do not pass the validation"))
@@ -19,41 +21,54 @@ impl Password {
     }
 }
 
-impl AsRef<str> for Password {
-    fn as_ref(&self) -> &str {
-        &self.value
+fn validate_password(s: &Secret<String>) -> bool { // Updated!
+    s.expose_secret().len() >= 8 && 
+        s.expose_secret().chars().any(|c| c.is_uppercase()) && 
+        s.expose_secret().chars().any(|c| c.is_lowercase())
+}
+
+impl AsRef<Secret<String>> for Password {
+    fn as_ref(&self) -> &Secret<String> {
+        &self.0
     }
 }
 
 
-#[test]
-fn good_passwords_should_be_parsed() {
+#[cfg(test)]
+mod tests {
 
-    let raw_passwords = [
-        "gotSomeUpperAndLower", 
-        "GotSpecial!Char", 
-        "Exactly8"
-    ];
+    use super::Password;
+    use secrecy::Secret;
 
-    for raw_password in raw_passwords {
-        assert!(Password::parse(raw_password).is_ok());
+    #[test]
+    fn good_passwords_should_be_parsed() {
+
+        let raw_passwords = [
+            "gotSomeUpperAndLower", 
+            "GotSpecial!Char", 
+            "Exactly8"
+        ];
+
+        for raw_password in raw_passwords {
+            assert!(Password::parse(Secret::new(raw_password.to_string())).is_ok());
+        }
+        
     }
-    
-}
 
-#[test]
-fn bad_passwords_should_be_parsed() {
+    #[test]
+    fn bad_passwords_should_be_parsed() {
 
-    let raw_passwords = [
-        "short", 
-        "LOWERCASE", 
-        "UPPERCASE", 
-        "****", 
-        "123"
-    ];
+        let raw_passwords = [
+            "short", 
+            "LOWERCASE", 
+            "UPPERCASE", 
+            "****", 
+            "123"
+        ];
 
-    for raw_password in raw_passwords {
-        assert!(Password::parse(raw_password).is_err());
+        for raw_password in raw_passwords {
+            assert!(Password::parse(Secret::new(raw_password.to_string())).is_err());
+        }
+        
     }
-    
 }

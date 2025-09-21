@@ -1,4 +1,5 @@
 use color_eyre::eyre::{eyre, Context, Report, Result};
+use secrecy::{ExposeSecret, Secret};
 use thiserror::Error;
 use rand::Rng;
 use uuid::Uuid;
@@ -39,39 +40,52 @@ impl PartialEq for TwoFACodeStoreError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct LoginAttemptId(pub String);
+#[derive(Debug, Clone)]
+pub struct LoginAttemptId(pub Secret<String>);
 
 impl LoginAttemptId {
-    pub fn parse(id: String) -> Result<Self> {
-        let _ = Uuid::parse_str(&id).wrap_err("Invalid login attempt id")?;
+    pub fn parse(id: Secret<String>) -> Result<Self> {
+        let _ = Uuid::parse_str(id.expose_secret()).wrap_err("Invalid login attempt id")?;
         Ok(LoginAttemptId(id))
+    }
+}
+
+impl PartialEq for LoginAttemptId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
     }
 }
 
 impl Default for LoginAttemptId {
     fn default() -> Self {
-        LoginAttemptId(Uuid::new_v4().to_string())
+        LoginAttemptId(Secret::new(Uuid::new_v4().to_string()))
     }
 }
 
-impl AsRef<str> for LoginAttemptId {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for LoginAttemptId {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct TwoFACode(pub String);
+#[derive(Clone, Debug)]
+pub struct TwoFACode(pub Secret<String>);
+
+impl PartialEq for TwoFACode {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}
 
 impl TwoFACode {
-    pub fn parse(code: String) -> Result<Self> {
-        let _ = code.parse::<u32>().wrap_err("Invalid 2FA code")?;
-        if code.len() != 6 {
-            Err(eyre!("Code '{}' is of lenght '{}', it needs to be of lenght 6", code, code.len()))
+    pub fn parse(code: Secret<String>) -> Result<Self> {
+        let _ = code.expose_secret().parse::<u32>().wrap_err("Invalid 2FA code")?;
+        let code_len = code.expose_secret().len() ;
+        if code_len != 6 {
+            Err(eyre!("Code is of lenght '{}', it needs to be of lenght 6", code_len))
         }
-        else if !code.chars().all(|c| c.is_ascii_digit()) {
-            Err(eyre!("Code '{}' has non-digit characters", code))
+        else if !code.expose_secret().chars().all(|c| c.is_ascii_digit()) {
+            Err(eyre!("Code has non-digit characters"))
         }
         else {
             Ok(TwoFACode(code))
@@ -81,12 +95,12 @@ impl TwoFACode {
 
 impl Default for TwoFACode {
     fn default() -> Self {
-        TwoFACode(rand::thread_rng().gen_range(100000..=999999).to_string())
+        TwoFACode(Secret::new(rand::thread_rng().gen_range(100000..=999999).to_string()))
     }
 }
 
-impl AsRef<str> for TwoFACode {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for TwoFACode {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }

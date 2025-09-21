@@ -7,6 +7,7 @@ use axum::{
     response::IntoResponse
 };
 use axum_extra::extract::CookieJar;
+use secrecy::Secret;
 
 use crate::{
     app_state::AppState, 
@@ -30,13 +31,13 @@ pub async fn logout(
     let HttpSettings { address: _, jwt_token, jwt_cookie_name} = state.auth_settings.http;
     let cookie = jar.get(&jwt_cookie_name).ok_or(AuthAPIError::MissingToken)?;
 
-    let token = cookie.value().to_owned();
+    let token = Secret::new(cookie.value().to_owned());
 
 
     validate_token(state.banned_token_store.clone(), &token, jwt_token).await.map_err(|_| AuthAPIError::InvalidToken)?;
 
     let mut banned_token_store = state.banned_token_store.write().await;
-    let _ = banned_token_store.add_token(cookie.clone().value().to_owned()).await;
+    let _ = banned_token_store.add_token(Secret::new(cookie.clone().value().to_owned())).await;
 
 
     //This method generates the cookie with no token but with the flags like HttpOnly, SameSite...

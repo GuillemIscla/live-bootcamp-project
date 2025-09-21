@@ -1,3 +1,4 @@
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use std::env as std_env;
 
@@ -12,7 +13,7 @@ pub struct AuthSettings {
 #[derive(Deserialize, Clone)]
 pub struct HttpSettings {
     pub address: String,
-    pub jwt_token: String,
+    pub jwt_token: Secret<String>,
     pub jwt_cookie_name: String,
 }
 
@@ -23,7 +24,7 @@ pub struct GrpcSettings {
 
 #[derive(Deserialize, Clone)]
 pub struct DatabaseSettings {
-    pub url: String,
+    pub url: Secret<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -61,10 +62,10 @@ impl AuthSettings {
     }
 
     fn validate(self) -> Self {
-        if self.http.jwt_token.trim().is_empty() {
+        if self.http.jwt_token.expose_secret().trim().is_empty() {
             panic!("JWT_SECRET must be set and not empty.");
         }
-        if self.database.url.trim().is_empty() {
+        if self.database.url.expose_secret().trim().is_empty() {
             panic!("DATABASE_URL must be set and not empty.");
         }
         // Optional: ensure Redis is always present

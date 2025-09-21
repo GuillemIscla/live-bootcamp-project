@@ -1,5 +1,6 @@
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::{auth::{verify_token_response::VerifyTokenStatus, VerifyTokenRequest}, domain::email::Email, utils::{auth::generate_auth_cookie, HttpSettings}};
+use secrecy::Secret;
 
 
 //grpc counterpart doesn't make sense here since the client does not accept just any request but 
@@ -101,7 +102,7 @@ async fn should_return_401_if_banned_token() {
 
     let cookie = generate_auth_cookie(&random_email, jwt_token, jwt_cookie_name, token_ttl_millis).unwrap();
 
-    let _ = app.banned_token_store.write().await.add_token(cookie.value().to_owned()).await;
+    let _ = app.banned_token_store.write().await.add_token(Secret::new(cookie.value().to_owned())).await;
 
     let test_case = serde_json::json!({
         "token": cookie.value(),

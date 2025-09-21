@@ -1,11 +1,12 @@
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::{domain::email::Email, routes::TwoFactorAuthResponse, ErrorResponse};
+use secrecy::{ExposeSecret, Secret};
 
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let signup_body = serde_json::json!({
         "email": random_email,
@@ -40,8 +41,8 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
-    let random_email_typed = Email::parse(random_email.clone()).unwrap();
+    let random_email = get_random_email().expose_secret().to_owned();
+    let random_email_typed = Email::parse(Secret::new(random_email.clone())).unwrap();
 
     let signup_body = serde_json::json!({
         "email": random_email,
@@ -80,7 +81,7 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
 async fn should_return_422_if_malformed_credentials() {
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email(); // Call helper method to generate email
+    let random_email = get_random_email().expose_secret().to_owned(); // Call helper method to generate email
 
     let test_cases = [
         serde_json::json!({
@@ -113,7 +114,7 @@ async fn should_return_422_if_malformed_credentials() {
 async fn should_return_400_if_invalid_input() {
     let mut app = TestApp::new(None).await;
     let short_password = "short!";
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let test_cases = [
         serde_json::json!({
@@ -155,7 +156,7 @@ async fn should_return_401_if_incorrect_credentials() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code    
     let mut app = TestApp::new(None).await;
 
-    let random_email = get_random_email();
+    let random_email = get_random_email().expose_secret().to_owned();
 
     let sign_up_request = serde_json::json!({
             "email": random_email,

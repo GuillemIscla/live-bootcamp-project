@@ -6,6 +6,7 @@ use auth_service::services::data_stores::{
 };
 use auth_service::utils::{init_tracing, AuthSettings};
 use auth_service::{get_postgres_pool, get_redis_client, Application};
+use secrecy::Secret;
 use sqlx::PgPool;
 use tokio::sync::RwLock;
 use std::sync::Arc;
@@ -32,7 +33,7 @@ async fn main() {
     app.run(None).await.expect("Failed to run app");
 }
 
-async fn configure_postgresql(database_url:&str) -> PgPool {
+async fn configure_postgresql(database_url:&Secret<String>) -> PgPool {
     let pg_pool = get_postgres_pool(database_url)
         .await
         .expect("Failed to create Postgres connection pool!");
