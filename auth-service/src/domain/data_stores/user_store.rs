@@ -1,6 +1,5 @@
 use crate::domain::{email::Email, password::Password, User, UserHashed};
 use color_eyre::eyre::Report;
-use rand::Rng;
 use thiserror::Error;
 
 #[mockall::automock]

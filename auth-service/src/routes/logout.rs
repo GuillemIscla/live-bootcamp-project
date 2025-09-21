@@ -15,6 +15,7 @@ use crate::{
     utils::{auth::{generate_auth_cookie_empty, validate_token}, HttpSettings}
 };
 
+#[tracing::instrument(name = "Logout", skip_all)]
 pub async fn logout(
     State(state): State<AppState>, 
     jar: CookieJar,

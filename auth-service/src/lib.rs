@@ -15,9 +15,6 @@ use tokio::try_join;
 use tokio::sync::oneshot;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use tracing::error;
-use tracing_error::SpanTrace;
-use color_eyre::eyre::Report;
 use redis::{Client, RedisResult};
 use crate::{
     app_state::AppState, 
@@ -78,12 +75,12 @@ impl Application {
         let router_internal = Router::new()
             .fallback_service(ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
-            // .route("/login", post(routes::login))
-            // .route("/logout", post(routes::logout))
-            // .route("/verify-2fa", post(routes::verify_2fa))
+            .route("/login", post(routes::login))
+            .route("/logout", post(routes::logout))
+            .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token_html))
             .route("/delete-account", delete(routes::delete_account))
-            // .route("/refresh-token", post(routes::refresh_token))
+            .route("/refresh-token", post(routes::refresh_token))
             .with_state(app_state.clone())
             .layer(
                 TraceLayer::new_for_http()

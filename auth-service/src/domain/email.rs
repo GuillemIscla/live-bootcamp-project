@@ -1,4 +1,5 @@
 use regex::Regex;
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(PartialEq, Debug, Clone, Hash, Eq)]
 pub struct Email {
@@ -6,13 +7,13 @@ pub struct Email {
 }
 
 impl Email {
-    pub fn parse(raw_email:String) -> Result<Email, ()> {
+    pub fn parse(raw_email:String) -> Result<Email> {
         let re = Regex::new(r"\S+@\S+\.\S+").unwrap();
         if re.is_match(&raw_email) {
             Ok(Email { value: raw_email })
         }
         else {
-            Err(())
+            Err(eyre!("Error parsing '{}' into an email", raw_email))
         }
     }
 }

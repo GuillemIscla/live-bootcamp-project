@@ -1,5 +1,5 @@
-//...
-
+use color_eyre::eyre::{eyre, Context, Report, Result};
+use thiserror::Error;
 use rand::Rng;
 use uuid::Uuid;
 
@@ -21,18 +21,30 @@ pub trait TwoFACodeStore {
     ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError>;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Error)]
 pub enum TwoFACodeStoreError {
+    #[error("Login Attempt ID not found")]
     LoginAttemptIdNotFound,
-    UnexpectedError,
+    #[error("Unexpected error")]
+    UnexpectedError(#[source] Report),
+}
+
+impl PartialEq for TwoFACodeStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (Self::LoginAttemptIdNotFound, Self::LoginAttemptIdNotFound)
+                | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LoginAttemptId(pub String);
 
 impl LoginAttemptId {
-    pub fn parse(id: String) -> Result<Self, String> {
-        let _ = Uuid::parse_str(&id).map_err(|_| format!("Cannot convert to uuid: '{}'", id))?;
+    pub fn parse(id: String) -> Result<Self> {
+        let _ = Uuid::parse_str(&id).wrap_err("Invalid login attempt id")?;
         Ok(LoginAttemptId(id))
     }
 }
@@ -53,12 +65,13 @@ impl AsRef<str> for LoginAttemptId {
 pub struct TwoFACode(pub String);
 
 impl TwoFACode {
-    pub fn parse(code: String) -> Result<Self, String> {
+    pub fn parse(code: String) -> Result<Self> {
+        let _ = code.parse::<u32>().wrap_err("Invalid 2FA code")?;
         if code.len() != 6 {
-            Err(format!("Code '{}' is of lenght '{}', it needs to be of lenght 6", code, code.len()))
+            Err(eyre!("Code '{}' is of lenght '{}', it needs to be of lenght 6", code, code.len()))
         }
         else if !code.chars().all(|c| c.is_ascii_digit()) {
-            Err(format!("Code '{}' has non-digit characters", code))
+            Err(eyre!("Code '{}' has non-digit characters", code))
         }
         else {
             Ok(TwoFACode(code))

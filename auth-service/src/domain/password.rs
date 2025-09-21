@@ -1,3 +1,4 @@
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Password {
@@ -5,7 +6,7 @@ pub struct Password {
 }
 
 impl Password {
-    pub fn parse(raw_password:&str) -> Result<Password, ()> {
+    pub fn parse(raw_password:&str) -> Result<Password> {
         if raw_password.len() >= 8 && 
             raw_password.chars().any(|c| c.is_uppercase())&& 
             raw_password.chars().any(|c| c.is_lowercase())
@@ -13,7 +14,7 @@ impl Password {
             Ok(Password { value: raw_password.to_string() })
         }
         else {
-            Err(())
+            Err(eyre!("Password chosen do not pass the validation"))
         }
     }
 }

@@ -1,5 +1,5 @@
 use auth_service::app_state::AppState;
-use auth_service::domain::data_stores::{RedisBannedTokenStore, RedisTwoFACodeStore};
+use auth_service::services::data_stores::{RedisBannedTokenStore, RedisTwoFACodeStore};
 use auth_service::services::data_stores::{
     postgres_user_store::PostgresUserStore,
     mock_email_client::MockEmailClient
