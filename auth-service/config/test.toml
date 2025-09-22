@@ -6,3 +6,8 @@ address = "127.0.0.1:0"
 
 [redis]
 ttl_millis = 1000
+
+[email]
+base_url = "127.0.0.1:0"
+sender = "test@email.com"
+timeout_milliseconds = 200

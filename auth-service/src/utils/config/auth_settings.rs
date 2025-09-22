@@ -8,6 +8,7 @@ pub struct AuthSettings {
     pub grpc: GrpcSettings,
     pub database: DatabaseSettings,
     pub redis: RedisSettings,
+    pub email: EmailSettings,
 }
 
 #[derive(Deserialize, Clone)]
@@ -33,6 +34,15 @@ pub struct RedisSettings {
     pub ttl_millis: i64,
 }
 
+#[derive(Deserialize, Clone)]
+pub struct EmailSettings {
+    pub postmark_auth_token: Secret<String>,
+    pub base_url: String,
+    pub sender: String,
+    pub timeout_milliseconds: u64,
+}
+
+
 
 impl AuthSettings {
     pub fn new() -> Self {
@@ -42,6 +52,7 @@ impl AuthSettings {
         let run_env = std_env::var("RUN_ENV").unwrap_or_else(|_| "default".into());
 
         let jwt = std::env::var(env::JWT_SECRET_ENV_VAR).expect(&format!("{} must be set.", env::JWT_SECRET_ENV_VAR));
+        let postmark_auth_token = std::env::var(env::POSTMARK_AUTH_TOKEN_ENV_VAR).expect(&format!("{} must be set.", env::POSTMARK_AUTH_TOKEN_ENV_VAR));
         let db_url = std::env::var(env::DATABASE_URL_ENV_VAR).expect(&format!("{} must be set.", env::DATABASE_URL_ENV_VAR));
         let redis_host = std::env::var(env::REDIS_HOST_NAME_ENV_VAR).ok();
 
@@ -52,6 +63,7 @@ impl AuthSettings {
             .add_source(config::File::with_name(&format!("config/{}", run_env)).required(false))
             //load variables from env
             .set_override("http.jwt_token", jwt).unwrap()
+            .set_override("email.postmark_auth_token", postmark_auth_token).unwrap()
             .set_override("database.url", db_url).unwrap()
             .set_override_option("redis.host_name", redis_host).unwrap();
 
@@ -81,4 +93,5 @@ mod env {
     pub const JWT_SECRET_ENV_VAR: &str = "JWT_SECRET";
     pub const DATABASE_URL_ENV_VAR: &str = "DATABASE_URL";
     pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME"; 
+    pub const POSTMARK_AUTH_TOKEN_ENV_VAR: &str = "POSTMARK_AUTH_TOKEN";
 }

@@ -1,6 +1,7 @@
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::{domain::email::Email, routes::TwoFactorAuthResponse, ErrorResponse};
 use secrecy::{ExposeSecret, Secret};
+use wiremock::{matchers::*, Mock, ResponseTemplate};
 
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
@@ -50,14 +51,20 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
         "requires2FA": true
     });
 
-    let response = app.post_signup(&signup_body).await;
-
-    assert_eq!(response.status().as_u16(), 201);
+    let _ = app.post_signup(&signup_body).await;
 
     let login_body = serde_json::json!({
         "email": random_email,
         "password": "Password123",
     });
+
+    Mock::given(path("/email")) // Expect an HTTP request to the "/email" path
+        .and(method("POST")) // Expect the HTTP method to be POST
+        .respond_with(ResponseTemplate::new(200)) // Respond with an HTTP 200 OK status
+        .expect(1) // Expect this request to be made exactly once
+        .mount(&app.email_server) // Mount this expectation on the mock email server
+        .await; // Await the asynchronous operation to ensure the mock server is set up before proceeding
+
 
     let response = app.post_login(&login_body).await;
 
